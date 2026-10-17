@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>材质工坊 · 虚拟存在层</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans SC',sans-serif;background:#0d1117;color:#c9d1d9;min-height:100vh;padding:12px;font-size:12px}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px}
+.top h1{font-size:17px;color:#58a6ff}
+.top .meta{font-size:12px;color:#8b949e}
+button{background:#21262d;color:#58a6ff;border:1px solid #30363d;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:13px}
+button:hover{background:#30363d}
+button.danger{color:#f85149}
+button.danger-armed{background:#b62324;color:#fff;border-color:#b62324}
+button.primary{background:#1f6feb;color:#fff;border-color:#1f6feb}
+button.primary:hover{background:#388bfd}
+input,select,textarea{background:#0d1117;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:5px 8px;font-size:12px}
+input:focus,textarea:focus,select:focus{outline:1px solid #1f6feb}
+.panel{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:16px;margin-bottom:16px}
+.panel>h2{font-size:13px;color:#e6edf3;margin-bottom:10px}
+.panel>h2 .sub{font-size:11px;color:#8b949e;font-weight:400;margin-left:8px}
+.controls{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.controls label{font-size:12px;color:#8b949e;display:flex;align-items:center;gap:6px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border:1px solid #30363d;border-radius:14px;background:#161b22;color:#8b949e;cursor:pointer;font-size:12px;user-select:none}
+.chip .dot{width:9px;height:9px;border-radius:50%;background:#484f58}
+.chip.on{color:#e6edf3;border-color:#1f6feb88;background:#1f6feb22}
+.chip.on .dot{background:var(--c)}
+#chart-wrap{position:relative;background:#0d1117;border:1px solid #30363d;border-radius:8px}
+#chart{display:block;width:100%;height:auto}
+#chart-tip{position:absolute;pointer-events:none;background:#161b22ee;border:1px solid #30363d;border-radius:6px;padding:6px 10px;font-size:11px;display:none;z-index:5;min-width:130px}
+#chart-tip b{color:#58a6ff}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:#8b949e}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:14px}
+.mat-card{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px}
+.mat-card h3{font-size:13px;color:#e6edf3;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.mat-card h3 .id{font-size:11px;color:#8b949e;font-weight:400}
+.krow{display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:12px;color:#8b949e}
+.krow .k{width:110px;flex-shrink:0}
+.krow input[type=number]{width:90px}
+.krow input[type=range]{flex:1;min-width:80px}
+.krow .v{width:44px;text-align:right;color:#e6edf3;font-variant-numeric:tabular-nums}
+.krow input[type=text]{flex:1;min-width:60px}
+.mat-card textarea{width:100%;height:40px;resize:vertical;font-size:11px;line-height:1.5}
+.hint{font-size:11px;color:#8b949e;margin:6px 0}
+.err{color:#f85149;font-size:13px;padding:20px;text-align:center}
+.empty{color:#8b949e;text-align:center;padding:40px 0;font-size:13px}
+.toast{position:fixed;bottom:24px;right:24px;background:#1f6feb;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;display:none;box-shadow:0 4px 20px #0008}
+.toast.err{background:#b62324}
+/* 四页互跳导航条（沙箱内无法直接跳转，见脚本注） */
+.xnav{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #21262d}
+.xnav .xt{font-size:11px;color:#8b949e;margin-right:4px}
+.xnav a{font-size:12px;color:#8b949e;border:1px solid #30363d;border-radius:6px;padding:3px 10px;background:#161b22;cursor:pointer;text-decoration:none}
+.xnav a:hover{background:#21262d;color:#c9d1d9}
+.xnav a.cur{color:#58a6ff;border-color:#1f6feb66;background:#1f6feb22;cursor:default}
+.refs{font-size:12px;color:#8b949e}
+.refs li{margin-bottom:6px;line-height:1.6}
+.refs a{color:#58a6ff;text-decoration:none}
+.refs a:hover{text-decoration:underline}
+.refs .k{color:#c9d1d9}
+.rowbtn{padding:2px 8px;font-size:11px}
+/* 方式参数卡（键名与 web_api._METHOD_PARAM_SPEC 对齐：freq_lo/freq_hi、speed_lo/speed_hi） */
+.mptab{width:100%;border-collapse:collapse;font-size:12px}
+.mptab th{color:#8b949e;font-weight:500;text-align:left;padding:5px 8px;border-bottom:1px solid #21262d}
+.mptab td{padding:5px 8px;border-bottom:1px solid #21262d}
+.mptab input[type=number]{width:86px}
+/* ---- 五页统一响应式基座：卡片限宽居中 / 表格容器横滚 / 触摸目标 ≥36px ---- */
+.xnav,.top,.panel{max-width:960px;margin-left:auto;margin-right:auto}
+.twrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+@media (max-width:639px){
+  button:not(.rowbtn){min-height:36px}
+  .krow{flex-wrap:wrap}
+}
+/* 保存反馈在手机窄屏保持可读，焦点操作同样可见。 */
+.toast{max-width:calc(100vw - 32px);overflow-wrap:anywhere;z-index:1000}
+button:disabled{opacity:.6;cursor:wait}
+.xnav a:focus-visible,button:focus-visible{outline:2px solid #58a6ff;outline-offset:2px}
+@media(max-width:639px){.xnav a{min-height:36px;display:inline-flex;align-items:center}.rowbtn{min-height:32px}}
+@media(max-width:639px){#chart-wrap{overflow-x:auto}#chart{min-width:560px}.mptab{min-width:420px}}
+</style>
+</head>
+<body>
+<div class="xnav"><span class="xt">存在层页面</span>
+  <a data-pg="身体">身体</a>
+  <a data-pg="空间">空间</a>
+  <a class="cur" data-pg="材质">材质</a>
+  <a data-pg="总览">总览</a>
+  <a data-pg="心绪">心绪</a>
+</div>
+<div class="top">
+  <div>
+    <h1>材质工坊 · 神经触觉层</h1>
+    <div class="meta" id="meta">加载中…</div>
+  </div>
+  <div>
+    <button onclick="loadAll()">刷新</button>
+    <button class="primary" id="save-btn" onclick="saveMaterials()">保存材质库并热生效</button>
+    <span id="save-state" class="hint"></span>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>曲线预览<span class="sub">部位敏感度 × 接触方式 × 材质 → 刺激乘数（core/material.material_gain 后端采样 40 点，前端零公式复制）</span></h2>
+  <div class="controls">
+    <label>部位
+      <select id="part-sel" onchange="onPartChange()"><option value="">加载中…</option></select>
+    </label>
+    <label>sens
+      <input type="range" id="sens-slider" min="0" max="10" step="1" value="5" style="width:110px" oninput="onSensChange()">
+      <b id="sens-label" style="color:#e6edf3;font-variant-numeric:tabular-nums">5</b>
+    </label>
+    <label>方式
+      <select id="method-sel" onchange="onMethodChange()"></select>
+    </label>
+    <span class="hint" id="axis-hint"></span>
+  </div>
+  <div class="chips" id="mat-chips"></div>
+  <div id="chart-wrap">
+    <svg id="chart" viewBox="0 0 760 330" preserveAspectRatio="xMidYMid meet"></svg>
+    <div id="chart-tip"></div>
+  </div>
+  <div class="legend" id="legend"></div>
+</div>
+
+<div class="panel">
+  <h2>方式参数<span class="sub" id="mp-src"></span></h2>
+  <p class="hint">揉搓/拍点的频率窗与抚摸的速度窗（随顶部「保存材质库并热生效」一并落盘 materials.json）。rub/tap 频率 Hz ｜ stroke 速度 cm/s。</p>
+  <div class="twrap"><table class="mptab" id="mp-table"></table></div>
+</div>
+
+<div class="panel">
+  <h2>材质库<span class="sub" id="lib-count"></span></h2>
+  <p class="hint">基础三参数：roughness_um 粗糙度（µm，0-1000）｜thermal 热导/凉感（0-1）｜ct_affinity CT 情感触觉亲和（0-1）。0.29.0 四扩展参数（缺省=中性不落档：摩擦 0.5、其余 0）：friction 摩擦｜thickness 厚度｜warm_hold 保温｜pattern_mm 纹理间距（mm）。每材质可再折叠"方式微调"按方式覆盖乘数。保存原子写回 data/materials.json，mtime 缓存自动热载——运行中的会话立即用新参数。</p>
+  <div class="grid" id="mat-grid"><div class="empty">加载中…</div></div>
+  <div style="margin-top:10px"><button onclick="addMaterial()">+ 新材质</button> <span class="hint">id 随中文名自动生成（英文名直接 slug；非英文回退编号）</span></div>
+</div>
+
+<div class="panel">
+  <h2>文献锚点<span class="sub">data/materials.json 的 _refs——公式数字的出处（保存时原样保留）</span></h2>
+  <p class="hint">0.29.0 扩展参数公式（默认中性值不改变现行为；常量锚在 CONFIG.py）：<br>
+    · 摩擦 friction（0-1，中性 0.5）：揉搓增益 ×(0.7+friction×0.6)——织物-皮肤摩擦系数 µ≈0.5-0.7（Temel 2023），冰面打滑 / 橡胶涩滞<br>
+    · 厚度 thickness（0-1，中性 0）：拍打增益 ×(1-thickness×0.4)——厚织物衬垫吸收高频振动（Pacinian 频带首当其冲）<br>
+    · 保温 warm_hold（0-1，中性 0）：吹气舒适窗 ×(1+0.6×warm_hold)——保温层热阻大、皮肤-气流温差衰减慢；温度类事件另 ×(1+0.3×warm_hold)<br>
+    · 纹理间距 pattern_mm（mm，中性 0/≤2）：&gt;2mm（两点辨别阈上限量级，Weinstein 系）粗纹理拍打 ×(1+0.25×(mm-2)/10 上限 1)——宏观纹冲击与 Pacinian 频带交互强化<br>
+    · 方式微调 method_gains：材质级方式乘数覆盖（0.4-1.8），乘在方式公式之后、总钳制之前</p>
+  <ol class="refs" id="refs"></ol>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="/api/plugin/page/bridge-sdk.js"></script>
+<script>
+/* Cross-page selection remains in the authenticated AstrBot plugin detail UI. */
+(function () {
+  function bindNavigation() {
+    document.querySelectorAll(".xnav a[data-pg]").forEach(function (link) {
+      if (link.classList.contains("cur")) return;
+      link.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        var message = "请返回 AstrBot 插件详情，选择对应的" + link.getAttribute("data-pg") + "页面。";
+        if (typeof toast === "function") toast(message);
+        else {
+          var output = document.getElementById("toast");
+          if (output) { output.textContent = message; output.style.display = "block"; }
+        }
+      });
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bindNavigation);
+  else bindNavigation();
+})();
+</script>
+<script>
+/* 官方约定：API 走 window.AstrBotPluginPage bridge（dashboard 代理带鉴权）；
+   endpoint = 注册路由去掉 /{插件名} 前缀的短路径。 */
+const bridge = window.AstrBotPluginPage;
+let BRIDGE_READY = null;
+function bridgeReady(){
+  if (!BRIDGE_READY) BRIDGE_READY = bridge ? bridge.ready() : Promise.reject(new Error('bridge 未注入（需部署在 AstrBot WebUI 内打开）'));
+  return BRIDGE_READY;
+}
+async function apiGet(endpoint){ await bridgeReady(); return bridge.apiGet(endpoint); }
+async function apiPost(endpoint, body){ await bridgeReady(); return bridge.apiPost(endpoint, body); }
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(msg, isErr){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast' + (isErr ? ' err' : ''); t.style.display = 'block';
+  clearTimeout(t._h); t._h = setTimeout(() => t.style.display = 'none', 3400);
+}
+
+/* ---- 方式表（横轴量纲与 core/web_api._METHOD_AXIS 对齐；标签含神经通道语义） ---- */
+const METHODS = [
+  {id:'stroke', label:'抚摸/滑移（CT 纤维）', axis:'速度', unit:'cm/s', lo:0.5, hi:80,
+   hint:'CT 情感触觉 1-10cm/s 峰值平台（Löken/Pawling 系）——窗外衰减'},
+  {id:'press', label:'按压（Merkel SA1）', axis:'压深', unit:'', lo:0, hi:1,
+   hint:'最适压深随敏感度左移（sens9 峰位≈0.32），重压在敏感区有过载惩罚'},
+  {id:'rub', label:'揉搓（Meissner 5-50Hz）', axis:'频率', unit:'Hz', lo:0, hi:300,
+   hint:'Meissner 颤动带内满增益；粗糙材质高敏区刺痒降乘、低敏区增信息'},
+  {id:'tap', label:'拍点（Pacinian 100-300Hz）', axis:'频率', unit:'Hz', lo:20, hi:500,
+   hint:'高频振动放大只在指尖/耳后类高敏末梢；硬光滑材质敲击更清脆'},
+  {id:'blow', label:'吹气（CT 温度调谐）', axis:'温度', unit:'°C', lo:0, hi:60,
+   hint:'32°C 肤温附近峰值（Ackerley 2014）；凉材质凉气带激灵感'},
+];
+const PALETTE = ['#58a6ff','#f778ba','#3fb950','#d29922','#f85149','#bc8cff','#39c5cf','#ffa198','#7ee787','#e3b341','#ff9bce','#d2a8ff'];
+
+let MATS = [];            // 材质编辑副本 [{id,label,aliases,roughness_um,thermal,ct_affinity,note,_new?}]
+let REFS = [];            // _refs 原文（页尾展示；保存原样回传）
+let GAIN_RANGE = [0.4, 1.8];
+let MATERIAL_ENABLED = true;
+let SENS_SCALE = [];      // 官方 sens 语义标尺（page/profiles 下发）
+let SENS = 5;
+let METHOD = 'stroke';
+let SELECTED = new Set(); // 选中的材质 id（曲线多选）
+let CURVE = null;         // 最近一次曲线响应 {curves, x_min, x_max, ...}
+let CURVE_SEQ = 0;
+
+/* ---- 方式参数卡（后端契约：method_params = {rub/tap:{freq_lo,freq_hi}, stroke:{speed_lo,speed_hi}}，
+   值域与 web_api._METHOD_PARAM_SPEC 同锚 rub 0-300 / tap 20-500 / stroke 0.5-80，窗内 lo<hi；
+   method_params 缺省（null）时展示默认值，首存生成） ---- */
+const MP_DEFAULT = {rub: {freq_lo: 5, freq_hi: 50}, tap: {freq_lo: 100, freq_hi: 300}, stroke: {speed_lo: 1, speed_hi: 10}};
+const MP_SPEC = {rub: {lo: 0, hi: 300}, tap: {lo: 20, hi: 500}, stroke: {lo: 0.5, hi: 80}};
+const MP_KEYS = {rub: ['freq_lo', 'freq_hi'], tap: ['freq_lo', 'freq_hi'], stroke: ['speed_lo', 'speed_hi']};
+let MP = null;            // 编辑副本 {rub:{freq_lo,freq_hi}, tap:{...}, stroke:{speed_lo,speed_hi}}
+let MP_FROM_FILE = false; // 后端是否已下发 method_params（false=默认值展示，首存生成）
+
+function mpFromServer(mp){
+  MP_FROM_FILE = !!(mp && typeof mp === 'object');
+  const src = MP_FROM_FILE ? mp : {};
+  MP = {};
+  for (const m of Object.keys(MP_KEYS)){
+    MP[m] = {};
+    for (const f of MP_KEYS[m]){
+      const v = +((src[m] || {})[f]);
+      MP[m][f] = isFinite(v) ? v : MP_DEFAULT[m][f];   // 后端允许部分方式缺省——逐字段回退默认
+    }
+  }
+}
+function renderMethodParams(){
+  const tb = document.getElementById('mp-table');
+  if (!tb || !MP) return;
+  const rows = [
+    ['rub',    '揉搓 rub（Meissner 频率窗 Hz）'],
+    ['tap',    '拍点 tap（Pacinian 频率窗 Hz）'],
+    ['stroke', '抚摸 stroke（CT 速度窗 cm/s）'],
+  ];
+  tb.innerHTML = '<tr><th>方式</th><th style="width:92px">下限</th><th style="width:92px">上限</th><th>值域</th></tr>' +
+    rows.map(([m, label]) => {
+      const spec = MP_SPEC[m], step = m === 'stroke' ? '0.1' : '1';
+      return `<tr><td>${label}</td>` + MP_KEYS[m].map(f =>
+        `<td><input type="number" data-mp="${m}.${f}" min="${spec.lo}" max="${spec.hi}" step="${step}" value="${MP[m][f]}"></td>`).join('') +
+        `<td class="hint">${spec.lo} - ${spec.hi}（下限须小于上限）</td></tr>`;
+    }).join('');
+  document.getElementById('mp-src').textContent = MP_FROM_FILE ? 'materials.json 已有 method_params' : '未落盘——展示默认值，首存生成';
+  tb.querySelectorAll('[data-mp]').forEach(inp => inp.addEventListener('change', () => {
+    const [m, f] = inp.dataset.mp.split('.');
+    const v = parseFloat(inp.value);
+    if (isFinite(v)) MP[m][f] = v;   // 值域/lo<hi 校验集中在保存时（与后端 400 同向）
+  }));
+}
+function mpValidationError(){
+  for (const m of Object.keys(MP_KEYS)){
+    const spec = MP_SPEC[m], [loK, hiK] = MP_KEYS[m];
+    const lo = +MP[m][loK], hi = +MP[m][hiK];
+    if (!isFinite(lo) || !isFinite(hi) || lo < spec.lo || lo > spec.hi || hi < spec.lo || hi > spec.hi)
+      return `方式参数 ${m} 须在 ${spec.lo}-${spec.hi}`;
+    if (!(lo < hi)) return `方式参数 ${m} 下限须小于上限`;
+  }
+  return '';
+}
+
+function colorOf(i){ return PALETTE[i % PALETTE.length]; }
+function methodMeta(id){ return METHODS.find(m => m.id === id) || METHODS[0]; }
+
+/* ---- 数据加载 ---- */
+async function loadAll(){
+  try{
+    const [m, pr] = await Promise.all([apiGet('page/materials'), apiGet('page/profiles')]);
+    MATS = (m.materials || []).map(x => ({...x, aliases: x.aliases || []}));
+    REFS = m._refs || [];
+    GAIN_RANGE = m.gain_range || [0.4, 1.8];
+    MATERIAL_ENABLED = m.enabled !== false;
+    mpFromServer(m.method_params);
+    SENS_SCALE = pr.sens_scale || [];
+    buildPartSelect(pr.profiles || {});
+    buildMethodSelect();
+    if (!SELECTED.size) (MATS.slice(0, 3)).forEach(x => SELECTED.add(x.id));
+    renderMeta(m);
+    renderChips();
+    renderGrid();
+    renderMethodParams();
+    renderRefs();
+    refreshCurve();
+  }catch(e){
+    document.getElementById('mat-grid').innerHTML = `<div class="err">加载失败：${esc(e.message || e)}</div>`;
+    toast('加载失败: ' + (e.message || e), true);
+  }
+}
+
+function renderMeta(m){
+  document.getElementById('meta').textContent =
+    `v${m.version} ｜ ${MATS.length} 种材质 ｜ ${MATERIAL_ENABLED ? '材质层开启' : '材质层已旁路（MATERIAL_ENABLED=False，曲线恒 1.0）'} ｜ 匹配窗 ${m.match_window} 字符 ｜ 感受词时效 ${m.stale_seconds}s`;
+}
+
+function buildPartSelect(profiles){
+  const sel = document.getElementById('part-sel');
+  const prev = sel.value;
+  const groups = Object.entries(profiles).map(([pid, prof]) => {
+    const opts = (prof.parts || []).map(p =>
+      `<option value="${Math.round(+p.sens || 0)}" data-label="${esc(p.label)}">${esc(p.label)}（sens ${Math.round(+p.sens || 0)}）</option>`).join('');
+    return `<optgroup label="${esc(prof.name || pid)}">${opts}</optgroup>`;
+  }).join('');
+  sel.innerHTML = groups || '<option value="5">（无 profile 部位——手动调 sens）</option>';
+  const first = sel.querySelector('option[value]');
+  if (first && (!prev || ![...sel.options].some(o => o.value === prev))) sel.value = first.value;
+  else if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
+  SENS = Math.round(+sel.value || 5);
+  document.getElementById('sens-slider').value = SENS;
+  onSensChange(false);
+}
+
+function buildMethodSelect(){
+  const sel = document.getElementById('method-sel');
+  const prev = sel.value || METHOD;
+  sel.innerHTML = METHODS.map(m => `<option value="${m.id}">${m.label}｜横轴 ${m.axis}${m.unit ? ' ' + m.unit : ''} ${m.lo}-${m.hi}</option>`).join('');
+  sel.value = [...sel.options].some(o => o.value === prev) ? prev : METHODS[0].id;
+  METHOD = sel.value;
+  renderAxisHint();
+}
+
+function renderAxisHint(){
+  const m = methodMeta(METHOD);
+  document.getElementById('axis-hint').textContent = m.hint;
+}
+
+function onPartChange(){
+  SENS = Math.round(+document.getElementById('part-sel').value || 5);
+  document.getElementById('sens-slider').value = SENS;
+  onSensChange(false);
+  refreshCurve();
+}
+function onSensChange(redraw = true){
+  SENS = Math.round(+document.getElementById('sens-slider').value || 0);
+  const hit = SENS_SCALE.find(s => s.level === SENS);
+  document.getElementById('sens-label').textContent = hit ? `${SENS}·${hit.name}` : String(SENS);
+  if (redraw) refreshCurve();
+}
+function onMethodChange(){
+  METHOD = document.getElementById('method-sel').value;
+  renderAxisHint();
+  refreshCurve();
+}
+
+/* ---- 材质多选 chips ---- */
+function renderChips(){
+  const box = document.getElementById('mat-chips');
+  box.innerHTML = MATS.map((m, i) => {
+    const on = SELECTED.has(m.id);
+    return `<span class="chip${on ? ' on' : ''}" style="--c:${colorOf(i)}" data-chip="${esc(m.id)}" title="${esc(m.note || '')}">` +
+      `<span class="dot"></span>${esc(m.label)}<span style="color:#8b949e">${+m.roughness_um}µm·ct${+m.ct_affinity}</span></span>`;
+  }).join('');
+  box.querySelectorAll('[data-chip]').forEach(el => el.addEventListener('click', () => {
+    const id = el.dataset.chip;
+    if (SELECTED.has(id)) SELECTED.delete(id); else SELECTED.add(id);
+    renderChips();
+    refreshCurve();
+  }));
+}
+
+/* ---- 曲线（后端采样，SVG 绘制） ---- */
+async function refreshCurve(){
+  const seq = ++CURVE_SEQ;
+  const ids = MATS.filter(m => SELECTED.has(m.id)).map(m => m.id);
+  const svg = document.getElementById('chart');
+  if (!ids.length){
+    CURVE = null;
+    svg.innerHTML = `<text x="380" y="165" text-anchor="middle" fill="#484f58" font-size="13">在上方选中至少一种材质</text>`;
+    document.getElementById('legend').innerHTML = '';
+    return;
+  }
+  svg.innerHTML = `<text x="380" y="165" text-anchor="middle" fill="#484f58" font-size="13">采样中…</text>`;
+  try{
+    const data = await apiPost('page/materials/curve', {part_sens: SENS, material_ids: ids, method: METHOD, points: 40});
+    if (seq !== CURVE_SEQ) return;   // 过期响应丢弃（快速切换控件时防串线）
+    CURVE = data;
+    drawChart();
+  }catch(e){
+    if (seq !== CURVE_SEQ) return;
+    svg.innerHTML = `<text x="380" y="165" text-anchor="middle" fill="#f85149" font-size="12">曲线采样失败：${esc(e.message || e)}</text>`;
+  }
+}
+
+const CH = {w:760, h:330, ml:48, mr:14, mt:14, mb:40};
+
+function drawChart(){
+  const svg = document.getElementById('chart');
+  const data = CURVE;
+  if (!data || !data.curves || !data.curves.length) return;
+  const meta = methodMeta(data.method);
+  const [glo, ghi] = data.gain_range || GAIN_RANGE;
+  const pad = (ghi - glo) * 0.06;
+  const y0 = Math.max(0, glo - pad), y1 = ghi + pad;
+  const iw = CH.w - CH.ml - CH.mr, ih = CH.h - CH.mt - CH.mb;
+  const X = x => CH.ml + (x - data.x_min) / (data.x_max - data.x_min || 1) * iw;
+  const Y = g => CH.mt + (1 - (g - y0) / (y1 - y0)) * ih;
+  const fmtX = v => (data.x_max <= 1.01 ? v.toFixed(2) : v >= 10 ? Math.round(v) : v.toFixed(1));
+  let s = '';
+  // 网格与 y 刻度
+  const yTicks = 6;
+  for (let i = 0; i <= yTicks; i++){
+    const g = y0 + (y1 - y0) * i / yTicks;
+    s += `<line x1="${CH.ml}" y1="${Y(g)}" x2="${CH.w - CH.mr}" y2="${Y(g)}" stroke="#21262d" stroke-width="1"/>` +
+      `<text x="${CH.ml - 6}" y="${Y(g) + 4}" text-anchor="end" fill="#8b949e" font-size="10">${g.toFixed(1)}</text>`;
+  }
+  // 中性线 y=1（乘数 1 = 无材质影响）
+  if (y0 < 1 && 1 < y1){
+    s += `<line x1="${CH.ml}" y1="${Y(1)}" x2="${CH.w - CH.mr}" y2="${Y(1)}" stroke="#30363d" stroke-width="1" stroke-dasharray="4 4"/>` +
+      `<text x="${CH.w - CH.mr - 2}" y="${Y(1) - 4}" text-anchor="end" fill="#484f58" font-size="9">中性 ×1.0</text>`;
+  }
+  // x 刻度
+  const xTicks = 8;
+  for (let i = 0; i <= xTicks; i++){
+    const x = data.x_min + (data.x_max - data.x_min) * i / xTicks;
+    s += `<line x1="${X(x)}" y1="${CH.mt + ih}" x2="${X(x)}" y2="${CH.mt + ih + 4}" stroke="#30363d"/>` +
+      `<text x="${X(x)}" y="${CH.mt + ih + 16}" text-anchor="middle" fill="#8b949e" font-size="10">${fmtX(x)}</text>`;
+  }
+  s += `<text x="${CH.ml + iw / 2}" y="${CH.h - 6}" text-anchor="middle" fill="#8b949e" font-size="11">${esc(meta.axis)}${meta.unit ? '（' + esc(meta.unit) + '）' : ''}</text>` +
+    `<text x="14" y="${CH.mt + ih / 2}" text-anchor="middle" fill="#8b949e" font-size="11" transform="rotate(-90 14 ${CH.mt + ih / 2})">刺激乘数</text>`;
+  // 曲线（每材质一条）
+  data.curves.forEach((c, ci) => {
+    const color = colorOf(MATS.findIndex(m => m.id === c.material_id) >= 0 ? MATS.findIndex(m => m.id === c.material_id) : ci);
+    const pts = c.points.map(p => `${X(p.x).toFixed(1)},${Y(p.gain).toFixed(1)}`).join(' ');
+    s += `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  });
+  // 悬停层
+  s += `<rect id="chart-hover" x="${CH.ml}" y="${CH.mt}" width="${iw}" height="${ih}" fill="transparent"/>`;
+  s += `<g id="chart-cross" style="display:none"><line id="cross-line" y1="${CH.mt}" y2="${CH.mt + ih}" stroke="#58a6ff88" stroke-width="1"/></g>`;
+  s += `<g id="chart-dots"></g>`;
+  svg.innerHTML = s;
+  const hover = svg.querySelector('#chart-hover');
+  const cross = svg.querySelector('#chart-cross');
+  const crossLine = svg.querySelector('#cross-line');
+  const dots = svg.querySelector('#chart-dots');
+  const tip = document.getElementById('chart-tip');
+  hover.addEventListener('mousemove', ev => {
+    const r = svg.getBoundingClientRect();
+    const mx = (ev.clientX - r.left) / r.width * CH.w;
+    if (mx < CH.ml || mx > CH.w - CH.mr){ hideTip(); return; }
+    const n = data.curves[0].points.length;
+    const idx = Math.max(0, Math.min(n - 1, Math.round((mx - CH.ml) / iw * (n - 1))));
+    const px = data.curves[0].points[idx].x;
+    crossLine.setAttribute('x1', X(px)); crossLine.setAttribute('x2', X(px));
+    cross.style.display = '';
+    let dotsSvg = '', dh = '';
+    data.curves.forEach(c => {
+      const color = colorOf(Math.max(0, MATS.findIndex(m => m.id === c.material_id)));
+      dh += `<div><span style="color:${color}">●</span> ${esc(c.label)} <b>×${c.points[idx].gain.toFixed(2)}</b></div>`;
+      dotsSvg += `<circle cx="${X(px)}" cy="${Y(c.points[idx].gain)}" r="3.5" fill="${color}" stroke="#0d1117"/>`;
+    });
+    dots.innerHTML = dotsSvg;
+    tip.innerHTML = `<b>${esc(meta.axis)} ${fmtX(px)}${meta.unit ? ' ' + esc(meta.unit) : ''}</b>` + dh;
+    tip.style.display = 'block';
+    const wrapR = document.getElementById('chart-wrap').getBoundingClientRect();
+    let tx = ev.clientX - wrapR.left + 14, ty = ev.clientY - wrapR.top + 10;
+    if (tx + 150 > wrapR.width) tx -= 170;
+    tip.style.left = tx + 'px'; tip.style.top = ty + 'px';
+  });
+  hover.addEventListener('mouseleave', hideTip);
+  function hideTip(){ cross.style.display = 'none'; dots.innerHTML = ''; tip.style.display = 'none'; }
+  renderLegend(data);
+}
+
+function renderLegend(data){
+  document.getElementById('legend').innerHTML = (data.curves || []).map(c => {
+    const i = MATS.findIndex(m => m.id === c.material_id);
+    return `<span><i style="background:${colorOf(i >= 0 ? i : 0)}"></i>${esc(c.label)} <span style="color:#8b949e">${esc(c.material_id)}</span></span>`;
+  }).join('') + `<span style="color:#8b949e">sens ${SENS} ｜ ${esc(methodMeta(data.method).label)}</span>`;
+}
+
+/* ---- 材质库卡片 ---- */
+/* 0.29.0 扩展参数（缺省=中性：摩擦 0.5 / 厚度·保温·纹理 0）：滑条直改；中性值不落档（保存时剥离） */
+const EXTRA_FIELDS = [
+  {k: 'friction',   label: '摩擦（0-1，0.5 中性）', lo: 0, hi: 1, step: 0.05, neutral: 0.5,
+   hint: '揉搓增益 ×(0.7+摩擦×0.6)：低=冰面打滑、高=橡胶涩滞'},
+  {k: 'thickness',  label: '厚度（0-1，0 中性）', lo: 0, hi: 1, step: 0.05, neutral: 0,
+   hint: '拍打增益 ×(1-厚度×0.4)：厚织物衬垫吸收高频振动'},
+  {k: 'warm_hold',  label: '保温（0-1，0 中性）', lo: 0, hi: 1, step: 0.05, neutral: 0,
+   hint: '吹气舒适窗 ×(1+0.6×保温)；温度类动作感受停留更久'},
+  {k: 'pattern_mm', label: '纹理间距 mm（0-50，0/≤2 中性）', lo: 0, hi: 50, step: 0.5, neutral: 0,
+   hint: '>2mm 粗纹理与 Pacinian 频带交互：拍打 ×(1+0.25×(mm-2)/10)'},
+];
+const METHOD_FIELDS = [
+  {id: 'stroke', label: '抚摸'}, {id: 'press', label: '按压'}, {id: 'rub', label: '揉搓'},
+  {id: 'tap', label: '拍打'}, {id: 'blow', label: '吹气'},
+];
+
+function renderGrid(){
+  const grid = document.getElementById('mat-grid');
+  document.getElementById('lib-count').textContent = `（${MATS.length} 种）`;
+  grid.innerHTML = MATS.map((m, i) => {
+    const mg = (m.method_gains && typeof m.method_gains === 'object') ? m.method_gains : {};
+    return `
+    <div class="mat-card" data-mi="${i}">
+      <h3>
+        <span><input value="${esc(m.label)}" data-k="label" style="width:120px;font-size:13px"> <span class="id">${esc(m.id)}</span></span>
+        <button class="rowbtn danger" data-action="delmat" data-mid="${esc(m.id)}">删</button>
+      </h3>
+      <div class="krow"><span class="k">粗糙度 µm（0-1000）</span><input type="number" min="0" max="1000" step="0.5" value="${+m.roughness_um}" data-k="roughness_um"></div>
+      <div class="krow"><span class="k">凉感 thermal（0-1）</span><input type="range" min="0" max="1" step="0.05" value="${+m.thermal}" data-k="thermal"><span class="v" data-v="thermal">${(+m.thermal).toFixed(2)}</span></div>
+      <div class="krow"><span class="k">CT 亲和（0-1）</span><input type="range" min="0" max="1" step="0.05" value="${+m.ct_affinity}" data-k="ct_affinity"><span class="v" data-v="ct_affinity">${(+m.ct_affinity).toFixed(2)}</span></div>
+      ${EXTRA_FIELDS.map(f => `
+      <div class="krow"><span class="k" title="${esc(f.hint)}">${esc(f.label)}</span><input type="range" min="${f.lo}" max="${f.hi}" step="${f.step}" value="${m[f.k] !== undefined ? +m[f.k] : f.neutral}" data-k="${f.k}"><span class="v" data-v="${f.k}">${m[f.k] !== undefined ? +m[f.k] : f.neutral}</span></div>`).join('')}
+      <details style="margin:6px 0">
+        <summary style="font-size:11px;color:#8b949e;cursor:pointer">方式微调（按方式覆盖乘数 0.4-1.8，1=中性）</summary>
+        ${METHOD_FIELDS.map(mm => `
+        <div class="krow"><span class="k">${esc(mm.label)} ${esc(mm.id)}</span><input type="range" min="0.4" max="1.8" step="0.05" value="${mg[mm.id] !== undefined ? +mg[mm.id] : 1}" data-mg="${mm.id}"><span class="v" data-vmg="${mm.id}">${mg[mm.id] !== undefined ? +mg[mm.id] : 1}</span></div>`).join('')}
+        <div class="hint">如 羽毛·拍打 1.3（振动更明显）、皮革·揉搓 0.8（抑制涩滞感）；全 1 不落档</div>
+      </details>
+      <div class="krow"><span class="k">id（新材质可改）</span><input type="text" value="${esc(m.id)}" data-k="id" ${m._new ? '' : 'title="改 id 会丢运行中状态的 last_material 引用，慎改"'}></div>
+      <div class="krow"><span class="k">别名（逗号分隔）</span><input type="text" value="${esc((m.aliases || []).join(','))}" data-k="aliases"></div>
+      <textarea data-k="note" placeholder="备注（触觉依据/出处）">${esc(m.note || '')}</textarea>
+    </div>`;
+  }).join('');
+  grid.querySelectorAll('.mat-card').forEach(card => {
+    const m = MATS[+card.dataset.mi];
+    card.querySelectorAll('[data-k]').forEach(inp => inp.addEventListener('change', () => {
+      const k = inp.dataset.k;
+      if (k === 'label'){
+        m.label = inp.value.trim();
+        if (m._new){   // 新材质：id 随中文名自动 slug（非英文回退编号，保持可改）
+          const slug = slugMatId(m.label, MATS);
+          if (slug){ m.id = slug; card.querySelector('[data-k="id"]').value = slug; }
+        }
+      }
+      else if (k === 'id') m.id = inp.value.trim();
+      else if (k === 'aliases') m.aliases = inp.value.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+      else if (k === 'note') m.note = inp.value.trim();
+      else if (k === 'roughness_um') m.roughness_um = parseFloat(inp.value);
+      else if (EXTRA_FIELDS.some(f => f.k === k)){
+        m[k] = parseFloat(inp.value);
+        const v = card.querySelector(`[data-v="${k}"]`);
+        if (v) v.textContent = String(+inp.value);
+      }
+      else { m[k] = parseFloat(inp.value); const v = card.querySelector(`[data-v="${k}"]`); if (v) v.textContent = (+inp.value).toFixed(2); }
+      if (k === 'id' || k === 'label' || k === 'aliases') renderChips();
+    }));
+    card.querySelectorAll('[data-mg]').forEach(inp => inp.addEventListener('change', () => {
+      m.method_gains = (m.method_gains && typeof m.method_gains === 'object') ? m.method_gains : {};
+      m.method_gains[inp.dataset.mg] = parseFloat(inp.value);
+    }));
+    card.querySelectorAll('input[type=range]').forEach(inp => inp.addEventListener('input', () => {
+      const vk = inp.dataset.mg ? `[data-vmg="${inp.dataset.mg}"]` : `[data-v="${inp.dataset.k}"]`;
+      const v = card.querySelector(vk);
+      if (v) v.textContent = String(+inp.value);
+    }));
+  });
+}
+
+/* id 自动 slug：英文名直接转（小写字母开头，仅小写字母/数字/下划线），撞名加 _2；非英文返回 null 回退编号 */
+function slugMatId(label, existing){
+  const base = String(label || '').trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+  if (!/^[a-z]/.test(base)) return null;
+  const taken = new Set((existing || []).map(m => m.id));
+  if (!taken.has(base)) return base.slice(0, 40);
+  let n = 2;
+  while (taken.has(`${base}_${n}`)) n++;
+  return `${base}_${n}`.slice(0, 40);
+}
+
+function addMaterial(){
+  let n = 1;
+  while (MATS.some(m => m.id === `new_material_${n}`)) n++;
+  MATS.push({id: `new_material_${n}`, label: '新材质', roughness_um: 20, thermal: 0.2, ct_affinity: 0.5,
+    aliases: [], note: '', _new: true});
+  renderGrid();
+  renderChips();
+  toast('已添加草稿材质——填中文名 id 自动生成，点顶部"保存材质库并热生效"');
+}
+
+/* 删除两步确认（iframe 沙箱禁 confirm，页内 armed 模式） */
+document.addEventListener('click', e => {
+  const btn = e.target.closest('[data-action="delmat"]');
+  if (!btn) return;
+  if (btn.dataset.armed !== '1'){
+    btn.dataset.armed = '1';
+    btn.dataset.origText = btn.textContent;
+    btn.textContent = '再点一次确认';
+    btn.classList.add('danger-armed');
+    setTimeout(() => {
+      if (btn.isConnected && btn.dataset.armed === '1'){
+        btn.dataset.armed = ''; btn.textContent = btn.dataset.origText; btn.classList.remove('danger-armed');
+      }
+    }, 4000);
+    return;
+  }
+  const mid = btn.dataset.mid;
+  MATS = MATS.filter(m => m.id !== mid);
+  SELECTED.delete(mid);
+  renderGrid(); renderChips(); refreshCurve();
+  toast(`已删除 ${mid}（保存后生效）`);
+});
+
+/* ---- 保存（前端预校验与后端同规则，最终以后端为准） ---- */
+/* 保存整个请求期间锁住按钮，慢请求不允许第二次提交覆盖。 */
+function debounceSave(btn){
+  if (!btn || btn.disabled) return false;
+  btn.disabled = true;
+  return true;
+}
+async function saveMaterials(){
+  const st = document.getElementById('save-state');
+  const seen = new Set(), owner = {};
+  for (const m of MATS){
+    if (!/^[a-z][a-z0-9_]*$/.test(m.id || '')){ toast(`材质 id 非法: ${m.id || '(空)'}（小写字母开头，仅小写字母/数字/下划线）`, true); return; }
+    if (seen.has(m.id)){ toast(`材质 id 重复: ${m.id}`, true); return; }
+    seen.add(m.id);
+    if (!String(m.label || '').trim()){ toast(`${m.id}: label 不能为空`, true); return; }
+    for (const [k, lo, hi] of [['roughness_um', 0, 1000], ['thermal', 0, 1], ['ct_affinity', 0, 1]]){
+      const v = +m[k];
+      if (!isFinite(v) || v < lo || v > hi){ toast(`${m.id}: ${k} 须在 ${lo}-${hi}`, true); return; }
+    }
+    /* 0.29.0 扩展参数：值域校验 + 中性值剥离（friction≠0.5、其余≠0 才落档） */
+    for (const f of EXTRA_FIELDS){
+      if (m[f.k] === undefined) continue;
+      const v = +m[f.k];
+      if (!isFinite(v) || v < f.lo || v > f.hi){ toast(`${m.id}: ${f.k} 须在 ${f.lo}-${f.hi}`, true); return; }
+    }
+    if (m.method_gains !== undefined && m.method_gains !== null){
+      if (typeof m.method_gains !== 'object' || Array.isArray(m.method_gains)){ toast(`${m.id}: method_gains 必须是对象`, true); return; }
+      for (const [meth, gv] of Object.entries(m.method_gains)){
+        if (!METHOD_FIELDS.some(x => x.id === meth)){ toast(`${m.id}: method_gains 未知方式 ${meth}`, true); return; }
+        if (!isFinite(+gv) || +gv < 0.4 || +gv > 1.8){ toast(`${m.id}: method_gains.${meth} 须在 0.4-1.8`, true); return; }
+      }
+    }
+    for (const w of [String(m.label || '').trim(), ...(m.aliases || [])]){
+      if (w && owner[w] && owner[w] !== m.id){ toast(`词 "${w}" 同时属于 ${owner[w]} 与 ${m.id}`, true); return; }
+      owner[w] = m.id;
+    }
+  }
+  const mpErr = mpValidationError();   // 方式参数校验失败 toast 不保存（与后端 400 同向）
+  if (mpErr){ toast(mpErr, true); return; }
+  if (!debounceSave(document.getElementById('save-btn'))) return;
+  st.textContent = '保存中…';
+  try{
+    const payload = {
+      _refs: REFS,
+      /* 扩展参数：中性值不落档（摩擦 0.5 / 厚度·保温·纹理 0 / 方式乘数全 1）——core 缺省回中性，行为等价 */
+      materials: MATS.map(({_new, ...m}) => {
+        const out = {...m};
+        for (const f of EXTRA_FIELDS){
+          if (out[f.k] !== undefined && Math.abs(+out[f.k] - f.neutral) < 1e-9) delete out[f.k];
+        }
+        if (out.method_gains && typeof out.method_gains === 'object'){
+          const nz = Object.fromEntries(Object.entries(out.method_gains).filter(([, v]) => Math.abs(+v - 1) > 1e-9));
+          if (Object.keys(nz).length) out.method_gains = nz;
+          else delete out.method_gains;
+        }
+        return out;
+      }),
+      method_params: {rub: {...MP.rub}, tap: {...MP.tap}, stroke: {...MP.stroke}},   // 键名与后端 _METHOD_PARAM_SPEC 一字不差
+    };
+    const r = await apiPost('page/materials/save', payload);
+    st.textContent = `已保存 ${r.materials} 种并热生效 ✓`;
+    toast('材质库已保存，运行中的会话立即使用新参数');
+    await loadAll();
+  }catch(e){
+    st.textContent = '保存失败：' + (e.message || e) + '（编辑内容已保留）';
+    toast('保存失败: ' + (e.message || e), true);
+  }finally{
+    document.getElementById('save-btn').disabled = false;
+  }
+}
+
+/* ---- 文献锚点 ---- */
+function safeReferenceUrl(value){
+  try{
+    const url = new URL(String(value || ''));
+    return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password ? url.href : '';
+  }catch(_){ return ''; }
+}
+function renderRefs(){
+  document.getElementById('refs').innerHTML = REFS.filter(r => r && typeof r === 'object').map(r => {
+    const url = safeReferenceUrl(r.url);
+    const link = url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(r.url)}</a>` : esc(r.url || '');
+    return `<li><span class="k">${esc(r.k || '')}</span>——${esc(r.ref || '')} ${link}</li>`;
+  }).join('') || '<li class="hint">（materials.json 无 _refs）</li>';
+}
+
+/* 四页互跳：AstrBot 插件页 iframe 沙箱（allow-scripts；静态资源解析限定在本 page 目录，
+   官方文档明确"不要依赖 .. 逃逸 Page 根目录"；bridge 亦无页面跳转 API）——
+   ../<name>/ 相对跳转不可行，点击给出一致引导。 */
+
+
+loadAll();
+</script>
+</body>
+</html>

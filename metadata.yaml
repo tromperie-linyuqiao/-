@@ -1,0 +1,7 @@
+name: astrbot_plugin_virtual_body
+display_name: 虚拟存在层
+desc: 为角色维护身体、庄园空间和心绪状态，统一整合音乐、时间、天气与活动感知，以紧凑上下文辅助自然表现。
+author: menglimi
+version: 0.35.1
+astrbot_version: ">=4.26.6,<5.0.0"
+repo: https://github.com/tromperie-linyuqiao/-

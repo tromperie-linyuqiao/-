@@ -1,0 +1,330 @@
+{
+  "vb_enabled": {
+    "description": "启用身体状态模块",
+    "type": "bool",
+    "default": true,
+    "hint": "身体模块开关。关闭后停止身体推进、接触更新与身体注入，已有状态文件保留；空间和心绪按各自开关独立运行。"
+  },
+  "vb_default_character": {
+    "description": "默认角色 profile id",
+    "type": "string",
+    "default": "example",
+    "hint": "私聊会话对应的角色。须与 data/profiles 里某个 profile 的 id 一致。"
+  },
+  "vb_enabled_profiles": {
+    "description": "启用的 profile 列表",
+    "type": "string",
+    "default": "",
+    "hint": "逗号分隔的 profile id，留空加载全部。自带中性模板 example；自定义角色放入插件数据目录 profiles。"
+  },
+  "vb_profiles_dir": {
+    "description": "自定义 profile 目录",
+    "type": "string",
+    "default": "",
+    "hint": "额外 profile 搜索目录（绝对路径）。优先级：plugin_data/profiles > 此目录 > 插件自带 data/profiles。"
+  },
+  "vb_inject_enabled": {
+    "description": "启用轮次前注入",
+    "type": "bool",
+    "default": true,
+    "hint": "仅对白名单私聊补充当前身体状态；默认使用临时内容块，不落长期历史。宿主缺少临时内容接口时保守跳过。"
+  },
+  "vb_tick_seconds": {
+    "description": "tick 周期（秒）",
+    "type": "int",
+    "default": 60,
+    "hint": "定时衰减推进周期，无消息也照跑。最小 15。进程重启后按 updated_at 补算中间衰减。"
+  },
+  "vb_render_max_chars": {
+    "description": "注入块字符上限",
+    "type": "int",
+    "default": 400,
+    "hint": "优先裁去完整低优先级条目，保留完整标签与护栏；预算不足以容纳最短完整块时跳过。"
+  },
+  "vb_show_numbers": {
+    "description": "数值对模型可见",
+    "type": "bool",
+    "default": true,
+    "hint": "关闭时只渲染档位名不渲染数值。profile 的 render.show_numbers_to_model 优先。数值只对模型可见，要求模型对用户不得提及。"
+  },
+  "vb_llm_fallback_enabled": {
+    "description": "启用 LLM 兜底抽取",
+    "type": "bool",
+    "default": false,
+    "hint": "文本规则未命中时交小模型抽 JSON。默认关闭（省额度）。失败当无事件，不重试。"
+  },
+  "vb_llm_fallback_daily_limit": {
+    "description": "兜底抽取每日上限",
+    "type": "int",
+    "default": 20,
+    "hint": "每日最多调用次数，超限直接跳过。调用前先占额度，失败不放回。"
+  },
+  "vb_inject_position": {
+    "description": "注入位置",
+    "type": "string",
+    "default": "user",
+    "hint": "user 使用 AstrBot 临时内容块；system 是兼容选项，会追加本轮 system_prompt 尾部。",
+    "_options": [
+      "user",
+      "system"
+    ]
+  },
+  "vb_tz_utc_offset": {
+    "description": "时区偏移（小时）",
+    "type": "int",
+    "default": -1,
+    "hint": "昼夜节律与'今日'日切所用时区。-1=跟随容器本地时区（Docker 容器多为 UTC，此时填 8=北京时间）。范围 -13~14。"
+  },
+  "vb_user_height_cm": {
+    "description": "互动对方身高（cm）",
+    "type": "int",
+    "default": 0,
+    "hint": "用户本人身高。与角色身高（profile.body.height_cm）差超过 15cm 时注入姿态提示（俯身/踮脚）。0=不启用。"
+  },
+  "vb_afterglow_seconds": {
+    "description": "余韵时长（秒）",
+    "type": "int",
+    "default": 1800,
+    "hint": "过载后余韵阶段时长。范围 300-7200。profile.params.afterglow_seconds 可再覆盖。"
+  },
+  "vb_cooldown_seconds": {
+    "description": "不应期时长（秒）",
+    "type": "int",
+    "default": 1200,
+    "hint": "余韵结束后不应期时长，到点回平常。范围 300-7200。profile.params.cooldown_seconds 可再覆盖。"
+  },
+  "vb_afterglow_mult": {
+    "description": "余韵期敏感倍数",
+    "type": "float",
+    "default": 1.4,
+    "hint": "余韵期同等刺激等效更强（乘在刺激强度上）。范围 1.0-2.0。profile.params.afterglow_mult 可再覆盖。"
+  },
+  "vb_cooldown_mult": {
+    "description": "不应期敏感倍数",
+    "type": "float",
+    "default": 0.6,
+    "hint": "不应期刺激反应迟钝程度。范围 0.2-1.0。profile.params.cooldown_mult 可再覆盖。"
+  },
+  "vb_night_window": {
+    "description": "夜间窗口（小时）",
+    "type": "string",
+    "default": "23-5",
+    "hint": "昼夜节律敏感窗口，格式 起-止（如 23-5 表示 23:00 到次日 05:00，支持跨午夜）。坏值回默认。"
+  },
+  "vb_constraint_text": {
+    "description": "注入约束行文案",
+    "type": "string",
+    "default": "把反应藏进动作里；动作先于台词；状态由系统跟踪，回复只含对话与动作",
+    "hint": "身体块『约束：』行的固定段。留默认用内置文案；自定义后紧凑/完整两形态都换用该文本（档位句长提示仍追加）。"
+  },
+  "vb_feel_word_ttl": {
+    "description": "材质感受词时效（秒）",
+    "type": "int",
+    "default": 600,
+    "hint": "材质事件后多久内继续渲染『丝绸·细滑』类感受词标签，超时不渲染防过时。范围 60-3600。"
+  },
+  "sp_enabled": {
+    "description": "启用空间层",
+    "type": "bool",
+    "default": true,
+    "hint": "存在层合并：庄园空间层（位置/移动/注入）。关闭后空间 tick、抽取、注入、指令全部停用，状态文件保留。"
+  },
+  "sp_tz_utc_offset": {
+    "description": "空间层时区偏移（小时）",
+    "type": "int",
+    "default": -1,
+    "hint": "兜底动线与日切时区。-1=跟随 vb_tz_utc_offset。范围 -13~14。"
+  },
+  "sp_inject_enabled": {
+    "description": "启用空间注入",
+    "type": "bool",
+    "default": true,
+    "hint": "门控通过时把空间底色块注入本轮消息（mark_as_temp 不落历史）。"
+  },
+  "sp_render_max_chars": {
+    "description": "空间注入块字符上限",
+    "type": "int",
+    "default": 160,
+    "hint": "超限先砍细节再截断。"
+  },
+  "sp_eta_thresholds": {
+    "description": "距离档阈值（秒）",
+    "type": "string",
+    "default": "15,60",
+    "hint": "移动/靠近时间的分档阈值，升序两档逗号分隔：≤第一档『马上就到』、≤第二档『还要一会儿』、其余『得走一阵』。坏值回默认。"
+  },
+  "sp_hearing_same_floor": {
+    "description": "异层听觉文案",
+    "type": "string",
+    "default": "隔着楼层，难闻声息",
+    "hint": "他在异层房间时空间块的听觉描述（渲染为『他在X（异层，<文案>）』）。"
+  },
+  "sp_hearing_adjacent": {
+    "description": "隔壁听觉文案",
+    "type": "string",
+    "default": "隔壁，可闻动静",
+    "hint": "他在隔壁房间时空间块的听觉描述（渲染为『他在X（<文案>）』）。"
+  },
+  "sp_migrate_legacy_manor": {
+    "description": "显式迁移旧庄园数据（默认关闭）",
+    "type": "bool",
+    "default": false,
+    "hint": "启用后初始化会读取同级astrbot_plugin_virtual_manor的空间/物品数据，复制尚无目标的文件，并在旧目录写.migrated标记；不删除旧文件、不覆盖已有目标。启用前请备份并确认数据使用权限，迁移后可关闭。"
+  },
+  "sp_pc_plan_enabled": {
+    "description": "保留日程适配兼容开关",
+    "type": "bool",
+    "default": false,
+    "hint": "本地候选不包含第三方日程文件适配器，也不读取其它插件目录。位置使用指令、RP和用户配置的兜底动线。"
+  },
+  "sp_rp_override_minutes": {
+    "description": "RP 覆盖有效期（分钟）",
+    "type": "int",
+    "default": 120,
+    "hint": "对话抽取到她的移动后，覆盖日程的时长，过期回落日程/兜底。"
+  },
+  "sp_llm_fallback_enabled": {
+    "description": "空间层 LLM 兜底抽取（预留）",
+    "type": "bool",
+    "default": false,
+    "hint": "并入自 manor 的预留键，一期纯规则。"
+  },
+  "presence_bridge_enabled": {
+    "description": "空间事件触发体感联动（她落位到同室→敏感微升）",
+    "type": "bool",
+    "default": true,
+    "hint": "L2-B 存在桥：她落位到他所在房间→最敏感非占位部位微升（+0.05 级，走身体演算管线），离开→微回落；5 分钟内反复进出不重复计。"
+  },
+  "mo_enabled": {
+    "description": "启用心绪编排",
+    "type": "bool",
+    "default": true,
+    "hint": "根据本插件可用信号按规则产出情境建议，供显式接入的外部调用方消费；本插件不主动发送聊天消息。外部阅读/情绪来源未配置时保持未知。"
+  },
+  "vb_verbal_arousal_enabled": {
+    "description": "保留语言情绪通道兼容开关",
+    "type": "bool",
+    "default": false,
+    "hint": "不读取第三方会话文件；未配置适配器时不生成语言情绪增益，已保存数值仍按原规则衰减。"
+  },
+  "vb_verbal_arousal_rate": {
+    "description": "语言调情爬升率",
+    "type": "float",
+    "default": 0.006,
+    "hint": "亲密情绪在场时每次推进（约每分钟）的兴奋爬升量。范围 0-0.05。profile.params.verbal_arousal_rate 可再覆盖。"
+  },
+  "vb_verbal_arousal_cap": {
+    "description": "语言兴奋上限",
+    "type": "float",
+    "default": 0.35,
+    "hint": "语言调情单独撑起的兴奋上限（合成时再乘权重——只托底、不会单靠说话推到失控）。范围 0.1-0.6。"
+  },
+  "vb_verbal_arousal_tau": {
+    "description": "语言兴奋衰减 τ（秒）",
+    "type": "int",
+    "default": 900,
+    "hint": "对话氛围散去后语言兴奋的指数衰减时间常数。范围 300-7200。"
+  },
+  "vb_verbal_arousal_weight": {
+    "description": "语言兴奋合成权重",
+    "type": "float",
+    "default": 0.8,
+    "hint": "最终兴奋度 = max(身体兴奋, 语言兴奋×此权重)。范围 0.2-1.5。profile.params.verbal_arousal_weight 可再覆盖。"
+  },
+  "vb_verbal_emotions": {
+    "description": "亲密情绪集",
+    "type": "string",
+    "default": "praise,comfort,comfort_need",
+    "hint": "兼容保留的情绪词配置；当前候选不包含会话情绪文件适配器，设置此词表不会自动读取外部数据。"
+  },
+  "vb_adaptation_enabled": {
+    "description": "长期身体记忆（日级适应）",
+    "type": "bool",
+    "default": true,
+    "hint": "每日统计近 7 天触碰流水：高频部位长效敏感化（+1%/天，钳 +30%），零触碰且原本敏感的部位迟钝化（-0.8%/天，钳 -20%）。"
+  },
+  "vb_mood_coupling_enabled": {
+    "description": "情绪耦合兼容参数（无外部输入）",
+    "type": "bool",
+    "default": true,
+    "hint": "当前候选没有外部情绪评分输入；本插件身体余温最高0.15，达不到现有低落（<-0.3）或愉悦（>0.5）增益阈值，因此不会由此产生情绪增益。保留兼容开关与原公式，不删除已有状态。"
+  },
+  "vb_proactive_touch_enabled": {
+    "description": "主动触碰意图（兼容保留）",
+    "type": "bool",
+    "default": true,
+    "hint": "需平常期、身体兴奋达阈值且已有语言兴奋高于门槛。当前候选没有语言情绪来源，新会话不会由此产生意图；仅生成上下文提示，不自动发消息。已有有效状态仍按原冷却与时效处理。"
+  },
+  "vb_proactive_touch_arousal": {
+    "description": "主动意图兴奋阈值",
+    "type": "float",
+    "default": 0.45,
+    "hint": "仅在平常期且已有语言兴奋高于门槛时，身体兴奋达到此值才可能产生意图。当前候选没有语言情绪来源，调整此值不会补出来源。"
+  },
+  "vb_proactive_touch_verbal_min": {
+    "description": "主动意图氛围门槛",
+    "type": "float",
+    "default": 0.15,
+    "hint": "已有语言兴奋须严格高于此值。当前候选没有语言情绪来源，新会话数值为0；降低门槛不会自动生成语气观测。"
+  },
+  "vb_proactive_touch_cooldown": {
+    "description": "主动意图冷却（秒）",
+    "type": "int",
+    "default": 14400,
+    "hint": "已满足来源与状态条件后，同一会话两次意图的最小间隔（默认4小时）；此参数不会创建语言来源或定时主动消息。"
+  },
+  "cs_persist_enabled": {
+    "description": "持续接触（接触自动延续）",
+    "type": "bool",
+    "default": true,
+    "hint": "接触一旦建立就自动延续，不需要每句都重新描述：直接触碰落账后，对话在场期间每条消息给一次原强度×延续率的增益；静默超过消息间隔窗才过期；'别摸耳朵'类否定语立即清除；过载进余韵时全部结束。"
+  },
+  "cs_persist_rate": {
+    "description": "持续接触延续率",
+    "type": "float",
+    "default": 0.4,
+    "hint": "每次延续给原强度的比例（0.9 重咬一次后每条消息续 0.36）。范围 0.2-0.8。"
+  },
+  "cs_persist_max_gap": {
+    "description": "持续接触过期窗（秒）",
+    "type": "int",
+    "default": 300,
+    "hint": "距最近一次对话超过该秒数，接触过期清除（默认 5 分钟消息间隔内延续）。范围 60-600。"
+  },
+  "vb_intimacy_boost_l1": {
+    "description": "亲密增益·有感觉倍率",
+    "type": "float",
+    "default": 1.3,
+    "hint": "她已经有感觉时（兴奋>0.15 或语言氛围>0.05）新刺激增益放大倍数。范围 1.0-2.0。"
+  },
+  "vb_intimacy_boost_l2": {
+    "description": "亲密增益·高敏感倍率",
+    "type": "float",
+    "default": 1.5,
+    "hint": "兴奋>0.35（接近反应档）时新刺激增益放大倍数，与 L1 取最大不叠乘。范围 1.0-2.5。"
+  },
+  "presence_layer_enabled": {
+    "description": "统一环境状态接口",
+    "type": "bool",
+    "default": true,
+    "hint": "音乐、设备、天气、时间等通过统一接口汇聚。关闭后统一状态接口不可用；身体、空间按各自开关运行，外部来源如何降级由其自身实现。"
+  },
+  "presence_context_enabled": {
+    "description": "环境背景自动注入",
+    "type": "bool",
+    "default": true,
+    "hint": "只增加本轮临时 Context，不修改人格或聊天历史；关闭后停止自动环境注入，统一状态接口开启时仍可按需查询。外部来源不会由本插件自动切换注入方式。"
+  },
+  "presence_context_max_chars": {
+    "description": "环境背景字符上限",
+    "type": "int",
+    "default": 420,
+    "hint": "默认420字符，并非计费Token。有效范围160–1200，错误或越界值回到420；只挑选有效信息，原身体/空间预算独立保留。"
+  },
+  "presence_repeat_seconds": {
+    "description": "相同重要背景最小重述间隔（秒）",
+    "type": "int",
+    "default": 300,
+    "hint": "默认300秒，有效范围30–3600。相同曲目进度刷新不重复，切歌/暂停及时更新；明确询问和同一请求重试仍读取最新有效状态，重试只保留一份环境块。"
+  }
+}

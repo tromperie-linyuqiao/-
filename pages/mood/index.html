@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>心绪编排层 · 控制台</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans SC',sans-serif;background:#0d1117;color:#c9d1d9;min-height:100vh;padding:12px;font-size:12px}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px}
+.top h1{font-size:17px;color:#58a6ff}
+.top .meta{font-size:12px;color:#8b949e}
+button{background:#21262d;color:#58a6ff;border:1px solid #30363d;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:13px}
+button:hover{background:#30363d}
+button.danger{color:#f85149}
+button.danger-armed{background:#b62324;color:#fff;border-color:#b62324}
+button.primary{background:#1f6feb;color:#fff;border-color:#1f6feb}
+button.primary:hover{background:#388bfd}
+button.rowbtn{padding:2px 8px;font-size:11px}
+input,select,textarea{background:#0d1117;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:5px 8px;font-size:12px}
+input:focus,select:focus,textarea:focus{outline:1px solid #1f6feb}
+input:disabled{color:#8b949e;background:#161b22}
+.panel{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:16px;margin-bottom:16px}
+.panel>h2{font-size:13px;color:#e6edf3;margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.panel>h2 .sub{font-size:11px;color:#8b949e;font-weight:400}
+.panel>h2 .spacer{margin-left:auto}
+.hint{font-size:11px;color:#8b949e;margin:6px 0}
+.err{color:#f85149;font-size:13px}
+.empty{color:#8b949e;text-align:center;padding:28px 0;font-size:13px}
+.toast{position:fixed;bottom:24px;right:24px;background:#1f6feb;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;display:none;box-shadow:0 4px 20px #0008;max-width:60vw}
+.toast.err{background:#b62324}
+/* 信号源卡 */
+.sig-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:12px}
+.sig-card{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:12px}
+.sig-card h3{font-size:13px;color:#e6edf3;display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.badge{font-size:11px;padding:1px 8px;border-radius:10px;border:1px solid}
+.badge.on{color:#3fb950;border-color:#3fb95055;background:#3fb95022}
+.badge.off{color:#8b949e;border-color:#30363d;background:#21262d}
+.badge.na{color:#8b949e;border-color:#21262d;background:transparent}
+.kv{font-size:12px;color:#8b949e;line-height:1.9}
+.kv b{color:#e6edf3;font-weight:600}
+.kv .muted{color:#8b949e}
+.bar{height:6px;background:#21262d;border-radius:3px;overflow:hidden;margin-top:6px}
+.bar>i{display:block;height:100%;background:linear-gradient(90deg,#1f6feb,#3fb950);border-radius:3px}
+/* 规则卡 */
+.rule-card{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:12px;margin-bottom:10px}
+.rule-card.editing{border-color:#1f6feb66}
+.rule-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.rule-id{font-size:13px;color:#e6edf3;font-weight:600}
+.sigtag{font-size:11px;padding:1px 8px;border-radius:10px;border:1px solid #1f6feb55;background:#1f6feb22;color:#58a6ff}
+.prio{font-size:11px;padding:1px 8px;border-radius:10px;border:1px solid;font-variant-numeric:tabular-nums}
+.prio.p1{color:#f85149;border-color:#f8514955;background:#f8514922}
+.prio.p2{color:#d29922;border-color:#d2992255;background:#d2992222}
+.prio.p3{color:#58a6ff;border-color:#1f6feb55;background:#1f6feb22}
+.prio.p4{color:#8b949e;border-color:#30363d;background:#21262d}
+.prio.p5{color:#8b949e;border-color:#21262d;background:transparent}
+.rule-body{font-size:12px;color:#8b949e;line-height:1.8}
+.cond-chip{display:inline-block;font-size:11px;border:1px solid #30363d;border-radius:6px;padding:1px 7px;margin:1px 4px 1px 0;background:#161b22;color:#c9d1d9}
+.cond-chip .op{color:#d29922}
+.hintline{border-left:2px solid #1f6feb55;padding:2px 10px;margin:6px 0;color:#c9d1d9;font-size:12px;background:#161b22;border-radius:0 6px 6px 0}
+.rule-foot{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+.switch{position:relative;display:inline-block;width:34px;height:18px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.switch i{position:absolute;cursor:pointer;inset:0;background:#21262d;border:1px solid #30363d;border-radius:10px;transition:.2s}
+.switch i:before{content:"";position:absolute;height:12px;width:12px;left:2px;top:2px;background:#8b949e;border-radius:50%;transition:.2s}
+.switch input:checked + i{background:#1f6feb55;border-color:#1f6feb}
+.switch input:checked + i:before{background:#58a6ff;transform:translateX(15px)}
+.switch-label{font-size:11px;color:#8b949e}
+.dirty{color:#d29922}
+/* 编辑表单 */
+.etable{width:100%;border-collapse:collapse;font-size:12px}
+.etable th{color:#8b949e;font-weight:500;text-align:left;padding:4px 8px;width:96px;vertical-align:top;padding-top:7px}
+.etable td{padding:4px 8px}
+.cond-row{display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
+.cond-row input[data-cf]{width:190px}
+.cond-row select{width:74px}
+.cond-row input[data-cv]{width:120px}
+.etable input[type=text],.etable input[type=number]{width:100%}
+.etable input.w-mid{width:min(260px,100%)}
+/* 情境提示占位符快捷按钮（点击在 template_hint 光标处插入 {xxx}） */
+.phbar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:5px}
+.phbar .rowbtn{padding:1px 8px}
+/* 触发 + 历史 */
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:16px;align-items:start}
+.trig{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px 12px;margin-bottom:8px}
+.trig .treason{font-size:13px;color:#e6edf3;margin:4px 0}
+.trig .tmeta{font-size:11px;color:#8b949e;margin-top:4px}
+.trig .tmeta b{color:#d29922;font-weight:600;font-variant-numeric:tabular-nums}
+.ctx-chip{display:inline-block;font-size:10px;border:1px dashed #30363d;border-radius:6px;padding:0 6px;margin:2px 4px 0 0;color:#8b949e}
+.tl-item{display:flex;gap:10px;padding:7px 2px;border-bottom:1px solid #161b22;font-size:12px}
+.tl-item:last-child{border-bottom:none}
+.tl-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.tl-dot.fired{background:#3fb950;box-shadow:0 0 4px #3fb95088}
+.tl-dot.unfired{background:transparent;border:1px solid #484f58}
+.tl-item .tt{color:#8b949e;font-variant-numeric:tabular-nums;flex-shrink:0}
+.tl-item .rid{color:#8b949e;font-size:11px}
+.tl-item .tag{color:#58a6ff}
+.foot{font-size:11px;color:#8b949e;margin-top:4px}
+/* ---- 五页统一响应式基座：卡片限宽居中 / 触摸目标 ≥36px / 四页互跳导航条 ---- */
+.xnav{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #21262d}
+.xnav .xt{font-size:11px;color:#8b949e;margin-right:4px}
+.xnav a{font-size:12px;color:#8b949e;border:1px solid #30363d;border-radius:6px;padding:3px 10px;background:#161b22;cursor:pointer;text-decoration:none}
+.xnav a:hover{background:#21262d;color:#c9d1d9}
+.xnav a.cur{color:#58a6ff;border-color:#1f6feb66;background:#1f6feb22;cursor:default}
+.xnav,.top,.panel,.cols{max-width:960px;margin-left:auto;margin-right:auto}
+.twrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.cond-row{overflow-x:auto}
+@media (max-width:639px){
+  button:not(.rowbtn){min-height:36px}
+  .cond-row input[data-cf]{width:min(190px,100%)}
+}
+/* 保存反馈在手机窄屏保持可读，焦点操作同样可见。 */
+.toast{max-width:calc(100vw - 32px);overflow-wrap:anywhere;z-index:1000}
+button:disabled{opacity:.6;cursor:wait}
+.xnav a:focus-visible,button:focus-visible{outline:2px solid #58a6ff;outline-offset:2px}
+@media(max-width:639px){.xnav a{min-height:36px;display:inline-flex;align-items:center}.rowbtn{min-height:32px}}
+</style>
+</head>
+<body>
+<div class="xnav"><span class="xt">存在层页面</span>
+  <a data-pg="身体">身体</a>
+  <a data-pg="空间">空间</a>
+  <a data-pg="材质">材质</a>
+  <a data-pg="总览">总览</a>
+  <a class="cur" data-pg="心绪">心绪</a>
+</div>
+<div class="top">
+  <div>
+    <h1>心绪编排层 · 控制台</h1>
+    <div class="meta" id="meta">加载中…</div>
+  </div>
+  <div>
+    <button onclick="refreshAll()">刷新</button>
+    <label style="font-size:12px;color:#8b949e;margin-left:8px"><input type="checkbox" id="auto" checked> 30s 自动刷新（信号/触发/历史）</label>
+    <button class="primary" id="rules-save-btn" onclick="saveRules()">保存规则库</button>
+    <span id="rules-save-state" class="hint"></span>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>信号源<span class="sub">四个只读来源的实时状态（编排轮询的输入）</span></h2>
+  <div class="sig-grid" id="sig-grid"><div class="empty">加载中…</div></div>
+</div>
+
+<div class="panel">
+  <h2>规则库<span class="sub" id="rules-count"></span>
+    <span class="spacer"></span>
+    <button class="rowbtn" onclick="addRule()">+ 新增规则</button>
+  </h2>
+  <p class="hint">改动先进草稿（含开关切换），点右上「保存规则库」整体写入并热生效。删除为两步确认。</p>
+  <div id="rules-list"><div class="empty">加载中…</div></div>
+</div>
+
+<div class="cols">
+  <div class="panel">
+    <h2>当前触发建议<span class="sub" id="trig-updated"></span></h2>
+    <div id="trig-list"><div class="empty">加载中…</div></div>
+  </div>
+  <div class="panel">
+    <h2>触发历史<span class="sub" id="hist-count"></span>
+      <span class="spacer"></span>
+      <button class="rowbtn danger" id="hist-reset-btn" onclick="resetState()">清空冷却与历史</button>
+    </h2>
+    <div id="hist-list"><div class="empty">加载中…</div></div>
+  </div>
+</div>
+<div class="foot">触发建议由后端按规则轮询信号源产出（含冷却/优先级），外部主动消息适配器 prompt 消费触发文件——本页只读展示。</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="/api/plugin/page/bridge-sdk.js"></script>
+<script>
+/* Cross-page selection remains in the authenticated AstrBot plugin detail UI. */
+(function () {
+  function bindNavigation() {
+    document.querySelectorAll(".xnav a[data-pg]").forEach(function (link) {
+      if (link.classList.contains("cur")) return;
+      link.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        var message = "请返回 AstrBot 插件详情，选择对应的" + link.getAttribute("data-pg") + "页面。";
+        if (typeof toast === "function") toast(message);
+        else {
+          var output = document.getElementById("toast");
+          if (output) { output.textContent = message; output.style.display = "block"; }
+        }
+      });
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bindNavigation);
+  else bindNavigation();
+})();
+</script>
+<script>
+/* 官方约定：API 走 window.AstrBotPluginPage bridge；endpoint = 注册路由去掉 /{插件名} 前缀的短路径
+   （本插件 web_api 六路由注册于 /astrbot_plugin_mood_orchestrator/page/<name> → endpoint 'page/<name>'）。
+   注意：bridge endpoint 禁止携带查询串（dashboard 端校验直接拒绝），limit 等参数走 apiGet 第二参。 */
+const bridge = window.AstrBotPluginPage;
+let BRIDGE_READY = null;
+function bridgeReady(){
+  if (!BRIDGE_READY) BRIDGE_READY = bridge ? bridge.ready() : Promise.reject(new Error('bridge 未注入（需部署在 AstrBot WebUI 内打开）'));
+  return BRIDGE_READY;
+}
+async function apiGet(endpoint, params){ await bridgeReady(); return bridge.apiGet(endpoint, params); }
+async function apiPost(endpoint, body){ await bridgeReady(); return bridge.apiPost(endpoint, body); }
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(msg, isErr){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast' + (isErr ? ' err' : ''); t.style.display = 'block';
+  clearTimeout(t._h); t._h = setTimeout(() => t.style.display = 'none', 3400);
+}
+function hm(s){ return String(s || '').replace('T', ' ').slice(5, 19); }   // "2026-09-19T12:34:56…" → "09-19 12:34:56"
+
+/* ---- 常量表（与后端契约对齐） ---- */
+const SIGNALS = {
+  weather:  {label: '天气',   fields: ['weather.is_rain', 'weather.condition']},
+  mood:     {label: '用户情绪', fields: ['mood.score', 'mood.confidence', 'mood.day']},
+  reading:  {label: '书柜进度', fields: ['reading.chapter_changed', 'reading.chapter_index', 'reading.chapter_count']},
+  presence: {label: '存在层',  fields: ['presence.room_changed', 'presence.she_room', 'presence.she_moving', 'presence.body_phase', 'presence.arousal']},
+};
+const OPS = ['eq', 'ne', 'gt', 'lt', 'gte', 'lte', 'changed'];
+const OPS_CN = {eq: '=', ne: '≠', gt: '>', lt: '<', gte: '≥', lte: '≤', changed: '变化'};
+const PRIO_CN = {1: 'P1 最高', 2: 'P2 高', 3: 'P3 中', 4: 'P4 低', 5: 'P5 最低'};
+const SIG_DESC = {
+  weather: '天气信号（本插件有效天气快照；外部来源使用统一接口）',
+  mood: '用户情绪信号（对话侧情绪评分）',
+  reading: '书柜阅读进度（未配置的可选阅读来源）',
+  presence: '存在层快照（空间位置 × 身体态）',
+};
+
+/* ---- 状态 ---- */
+let RULES = [];            // 规则草稿（含编辑中的整库副本）
+let RULES_SNAPSHOT = '';   // 最近一次载入/保存的 JSON（脏检查基准）
+let VERSION = '';
+let EDIT_IDX = -1;         // 正在编辑的规则下标（-1=无）
+let EDIT_COPY = null;      // 编辑中规则的副本（确定才写回草稿）
+let RULES_SAVING = false, RULES_LOAD_SEQ = 0;
+let TRIGGERS = [];
+
+function dirty(){ return JSON.stringify(cleanRules(RULES)) !== RULES_SNAPSHOT; }
+function cleanRules(rules){ return rules.map(r => ({...r, conditions: (r.conditions || []).map(c => ({...c}))})); }
+
+/* ================================================================
+   信号源
+   ================================================================ */
+function sigKv(pairs){
+  return '<div class="kv">' + pairs.map(([k, v]) => `<span>${esc(k)} <b>${esc(v)}</b></span>`).join('') + '</div>';
+}
+function sigCard(key, d){
+  const meta = SIGNALS[key];
+  if (!d){
+    return `<div class="sig-card"><h3>${esc(meta.label)}<span class="badge na">无数据</span></h3>
+      <div class="kv"><span class="muted">${esc(SIG_DESC[key])}——信号源未上报（未接入或尚未产生）</span></div></div>`;
+  }
+  const badge = d.available ? '<span class="badge on">可用</span>' : '<span class="badge off">不可用</span>';
+  let body = '';
+  if (key === 'weather'){
+    body = sigKv([['状况', d.condition ?? '-'], ['降雨', d.is_rain ? '是' : '否'], ['城市', d.city ?? '-']]);
+  } else if (key === 'mood'){
+    body = sigKv([['评分', d.score ?? '-'], ['置信', d.confidence ?? '-'], ['日期', d.day ?? '-']]);
+  } else if (key === 'reading'){
+    const total = +d.chapter_count || 0, cur = +d.chapter_index || 0;
+    const pct = total > 0 ? Math.min(100, cur / total * 100) : 0;
+    body = sigKv([['书目', d.book_title ?? '-'], ['章节', `${cur} / ${total || '-'}`]])
+      + (total > 0 ? `<div class="bar"><i style="width:${pct.toFixed(1)}%"></i></div>` : '');
+  } else if (key === 'presence'){
+    body = sigKv([['她所在', d.she_room ?? '-'], ['走动', d.she_moving ? '移动中' : '静止'],
+      ['身体期', d.body_phase ?? '-'], ['兴奋度', d.arousal ?? '-']]);
+  }
+  const upd = d.updated_at ? `<div class="kv" style="margin-top:4px"><span class="muted">更新 ${esc(hm(d.updated_at))}</span></div>` : '';
+  return `<div class="sig-card"><h3>${esc(meta.label)}${badge}</h3>${body}${upd}</div>`;
+}
+async function loadSignals(){
+  const box = document.getElementById('sig-grid');
+  try{
+    const d = await apiGet('page/mood/signals');
+    box.innerHTML = Object.keys(SIGNALS).map(k => sigCard(k, d[k])).join('');
+  }catch(e){
+    box.innerHTML = `<div class="empty err">信号源加载失败：${esc(e.message || e)}</div>`;
+  }
+}
+
+/* ================================================================
+   规则库
+   ================================================================ */
+function prioCls(p){ const n = Math.max(1, Math.min(5, +p || 5)); return 'p' + n; }
+function condText(c){
+  return `<span class="cond-chip">${esc(c.field)} <span class="op">${esc(OPS_CN[c.op] || c.op)}</span> ${c.op === 'changed' ? '' : esc(String(c.value ?? ''))}</span>`;
+}
+function ruleCardHtml(r, i){
+  if (i === EDIT_IDX) return ruleEditorHtml(i);
+  const conds = (r.conditions || []).map(condText).join('') || '<span class="hint">（无条件——编辑时补齐）</span>';
+  return `<div class="rule-card">
+    <div class="rule-head">
+      <span class="rule-id">${esc(r.id)}</span>
+      <span class="sigtag">${esc(SIGNALS[r.signal] ? SIGNALS[r.signal].label : r.signal)}</span>
+      <span class="prio ${prioCls(r.priority)}">${esc(PRIO_CN[r.priority] || 'P' + r.priority)}</span>
+      <label class="switch" title="启用/停用（草稿，保存后生效）">
+        <input type="checkbox" data-action="toggle" data-i="${i}" ${r.enabled ? 'checked' : ''}><i></i>
+      </label>
+      <span class="switch-label">${r.enabled ? '启用' : '停用'}</span>
+      <span class="spacer" style="margin-left:auto"></span>
+      <button class="rowbtn" data-action="edit" data-i="${i}">编辑</button>
+      <button class="rowbtn danger" data-action="delrule" data-i="${i}">删除</button>
+    </div>
+    <div class="rule-body">条件：${conds}</div>
+    <div class="rule-body">冷却 <b style="color:#e6edf3">${esc(r.cooldown_minutes ?? '-')} 分钟</b>｜template_hint：<span class="muted" style="color:#8b949e">${esc(r.template_hint || '')}</span></div>
+    ${r.note ? `<div class="rule-body" style="color:#8b949e">备注：${esc(r.note)}</div>` : ''}
+  </div>`;
+}
+
+function fieldOptions(signal){
+  return (SIGNALS[signal] ? SIGNALS[signal].fields : []).map(f => `<option value="${esc(f)}">`).join('');
+}
+function condRowHtml(c, j){
+  const disabled = c.op === 'changed' ? 'disabled' : '';
+  return `<div class="cond-row" data-cr="${j}">
+    <input list="field-opts" data-cf placeholder="signal.field" value="${esc(c.field || '')}">
+    <select data-co>${OPS.map(o => `<option value="${o}" ${o === c.op ? 'selected' : ''}>${esc(OPS_CN[o])} ${o}</option>`).join('')}</select>
+    <input data-cv placeholder="值" value="${esc(c.op === 'changed' ? '' : String(c.value ?? ''))}" ${disabled}>
+    <button class="rowbtn danger" data-action="delcond" data-j="${j}">删</button>
+  </div>`;
+}
+function ruleEditorHtml(i){
+  const r = EDIT_COPY;
+  return `<div class="rule-card editing">
+    <table class="etable">
+      <tr><th>id</th><td><input type="text" data-e="id" value="${esc(r.id)}" placeholder="rule_id（唯一）"></td></tr>
+      <tr><th>信号源</th><td>
+        <select data-e="signal">${Object.keys(SIGNALS).map(s => `<option value="${s}" ${s === r.signal ? 'selected' : ''}>${esc(SIGNALS[s].label)}（${s}）</option>`).join('')}</select>
+      </td></tr>
+      <tr><th>条件</th><td>
+        <datalist id="field-opts">${fieldOptions(r.signal)}</datalist>
+        <div id="cond-rows">${(r.conditions || []).map((c, j) => condRowHtml(c, j)).join('') || '<span class="hint">至少一条</span>'}</div>
+        <button class="rowbtn" data-action="addcond">+ 加条件</button>
+      </td></tr>
+      <tr><th>冷却分钟</th><td><input type="number" min="1" max="10080" step="1" data-e="cooldown_minutes" value="${esc(r.cooldown_minutes)}" style="width:110px"></td></tr>
+      <tr><th>优先级</th><td>
+        <select data-e="priority">${[1, 2, 3, 4, 5].map(p => `<option value="${p}" ${+r.priority === p ? 'selected' : ''}>${esc(PRIO_CN[p])}</option>`).join('')}</select>
+      </td></tr>
+      <tr><th>情境提示</th><td>
+        <div class="phbar">${[
+          ['她房间', '{she_room}'], ['城市', '{city}'], ['下雨', '{is_rain}'], ['心境', '{mood_word}'],
+          ['同室', '{same_room}'], ['阶段', '{phase}'], ['章节', '{chapter}'], ['移动中', '{she_moving}'],
+        ].map(([lbl, ph]) => `<button type="button" class="rowbtn" data-action="insph" data-ph="${esc(ph)}" title="在光标处插入 ${esc(ph)}">${esc(lbl)}</button>`).join('')}</div>
+        <input type="text" class="w-mid" data-e="template_hint" value="${esc(r.template_hint || '')}" placeholder="给 外部主动消息适配器的一句情境提示">
+      </td></tr>
+      <tr><th>备注</th><td><input type="text" class="w-mid" data-e="note" value="${esc(r.note || '')}"></td></tr>
+    </table>
+    <div class="rule-foot">
+      <button class="rowbtn primary" data-action="committedit" data-i="${i}">完成编辑</button>
+      <button class="rowbtn" data-action="canceledit">取消</button>
+      <span class="hint">完成编辑只写回草稿；仍需「保存规则库」落盘。</span>
+    </div>
+  </div>`;
+}
+
+function renderRules(){
+  const box = document.getElementById('rules-list');
+  const n = RULES.length;
+  const dirtyNow = dirty();
+  document.getElementById('rules-count').textContent = `（${n} 条${dirtyNow ? ' ｜ 有未保存修改' : ''}）`;
+  document.getElementById('rules-save-btn').textContent = dirtyNow ? '保存规则库 ●' : '保存规则库';
+  document.getElementById('rules-save-btn').classList.toggle('dirty', dirtyNow);
+  box.innerHTML = n ? RULES.map((r, i) => ruleCardHtml(r, i)).join('')
+    : '<div class="empty">暂无规则——点「+ 新增规则」建立第一条（例如：presence.room_changed 变化 → 提示调用方 她换了房间）</div>';
+  bindEditorInputs();
+}
+
+/* 编辑表单：change 事件写回 EDIT_COPY（不逐键重渲染，避免丢焦点） */
+function bindEditorInputs(){
+  if (EDIT_IDX < 0 || !EDIT_COPY) return;
+  const box = document.getElementById('rules-list');
+  const card = box.querySelector('.rule-card.editing');
+  if (!card) return;
+  card.querySelectorAll('[data-e]').forEach(inp => inp.addEventListener('change', () => {
+    const k = inp.dataset.e;
+    if (k === 'cooldown_minutes') EDIT_COPY[k] = parseInt(inp.value, 10);
+    else if (k === 'priority') EDIT_COPY[k] = parseInt(inp.value, 10) || 3;
+    else if (k === 'signal'){
+      EDIT_COPY.signal = inp.value;
+      EDIT_COPY.conditions = (EDIT_COPY.conditions || []).map(c => ({...c}));   // 保留原值，字段前缀交校验把关
+      const dl = card.querySelector('#field-opts');
+      if (dl) dl.innerHTML = fieldOptions(EDIT_COPY.signal);
+    }
+    else EDIT_COPY[k] = inp.value.trim();
+  }));
+  bindCondRows();
+}
+function bindCondRows(){
+  const card = document.querySelector('#rules-list .rule-card.editing');
+  if (!card) return;
+  card.querySelectorAll('.cond-row').forEach(row => {
+    const j = +row.dataset.cr;
+    const c = EDIT_COPY.conditions[j];
+    if (!c) return;
+    row.querySelector('[data-cf]').addEventListener('change', ev => { c.field = ev.target.value.trim(); });
+    const opSel = row.querySelector('[data-co]');
+    opSel.addEventListener('change', () => {
+      c.op = opSel.value;
+      const vInp = row.querySelector('[data-cv]');
+      vInp.disabled = c.op === 'changed';
+      if (c.op === 'changed') c.value = '';
+    });
+    row.querySelector('[data-cv]').addEventListener('change', ev => { c.value = ev.target.value; });
+  });
+}
+function refreshCondRows(){
+  const box = document.getElementById('cond-rows');
+  if (!box || EDIT_IDX < 0) return;
+  box.innerHTML = (EDIT_COPY.conditions || []).map((c, j) => condRowHtml(c, j)).join('') || '<span class="hint">至少一条</span>';
+  bindCondRows();
+}
+
+/* 事件委托：开关/编辑/删除（两步）/条件行增删/编辑提交取消 */
+document.addEventListener('click', e => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const act = btn.dataset.action;
+  if (RULES_SAVING){ toast('规则正在保存，请等待完成', true); return; }
+  const i = +btn.dataset.i;
+  if (act === 'toggle'){
+    RULES[i].enabled = !RULES[i].enabled;
+    renderRules();
+  } else if (act === 'edit'){
+    if (EDIT_IDX >= 0){ toast('先完成或取消当前正在编辑的规则', true); return; }
+    EDIT_IDX = i;
+    EDIT_COPY = JSON.parse(JSON.stringify(RULES[i]));
+    renderRules();
+  } else if (act === 'delrule'){
+    if (btn.dataset.armed !== '1'){
+      btn.dataset.armed = '1';
+      btn.dataset.origText = btn.textContent;
+      btn.textContent = '再点一次确认删除';
+      btn.classList.add('danger-armed');
+      setTimeout(() => {
+        if (btn.isConnected && btn.dataset.armed === '1'){
+          btn.dataset.armed = ''; btn.textContent = btn.dataset.origText; btn.classList.remove('danger-armed');
+        }
+      }, 4000);
+      return;
+    }
+    RULES.splice(i, 1);
+    if (EDIT_IDX === i){ EDIT_IDX = -1; EDIT_COPY = null; }
+    else if (EDIT_IDX > i) EDIT_IDX--;
+    renderRules();
+    toast('已从草稿删除（保存后生效）');
+  } else if (act === 'addcond'){
+    EDIT_COPY.conditions.push({field: '', op: 'eq', value: ''});
+    refreshCondRows();
+  } else if (act === 'delcond'){
+    EDIT_COPY.conditions.splice(+btn.dataset.j, 1);
+    refreshCondRows();
+  } else if (act === 'committedit'){
+    const errs = validateRule(EDIT_COPY, RULES, EDIT_IDX);
+    if (errs.length){ toast(errs[0], true); return; }
+    RULES[EDIT_IDX] = JSON.parse(JSON.stringify(EDIT_COPY));
+    EDIT_IDX = -1; EDIT_COPY = null;
+    renderRules();
+    toast('已写回草稿——记得「保存规则库」');
+  } else if (act === 'canceledit'){
+    EDIT_IDX = -1; EDIT_COPY = null;
+    renderRules();
+  } else if (act === 'insph'){
+    // 占位符快捷按钮：在 template_hint 光标处（selectionStart 拼接）插入 {xxx}，
+    // 并手动触发一次 input/change——复用 [data-e] 的 change 监听同步 EDIT_COPY
+    const card = btn.closest('.rule-card.editing');
+    const inp = card && card.querySelector('[data-e="template_hint"]');
+    if (!inp) return;
+    const ph = btn.dataset.ph || '';
+    const sc = inp.selectionStart ?? inp.value.length, se = inp.selectionEnd ?? sc;
+    inp.value = inp.value.slice(0, sc) + ph + inp.value.slice(se);
+    const pos = sc + ph.length;
+    try { inp.focus(); inp.setSelectionRange(pos, pos); } catch (_) {}
+    inp.dispatchEvent(new Event('input', {bubbles: true}));
+    inp.dispatchEvent(new Event('change', {bubbles: true}));
+  }
+});
+
+/* ---- 前端预校验（与后端 400 同向，最终以后端为准） ---- */
+function coerceValue(op, raw){
+  const s = String(raw ?? '').trim();
+  if (op === 'changed') return null;   // 与后端 rules.json 的 changed 条目对齐（value 恒 null）
+  if (s === 'true') return true;
+  if (s === 'false') return false;
+  if (s !== '' && !isNaN(Number(s))) return Number(s);
+  return s;
+}
+function validateRule(r, all, selfIdx){
+  const errs = [];
+  const id = String(r.id || '').trim();
+  if (!id) errs.push('id 不能为空');
+  else if (!/^[A-Za-z0-9_\-]{1,64}$/.test(id)) errs.push(`id 非法: ${id}（字母/数字/下划线/连字符，≤64）`);
+  else if (all.some((x, k) => k !== selfIdx && String(x.id).trim() === id)) errs.push(`id 重复: ${id}`);
+  if (!SIGNALS[r.signal]) errs.push('signal 必须是 weather/mood/reading/presence 之一');
+  const conds = r.conditions || [];
+  if (!conds.length) errs.push('conditions 至少一条');
+  conds.forEach((c, j) => {
+    const f = String(c.field || '').trim();
+    if (!/^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$/.test(f)) errs.push(`条件${j + 1}: field 须形如 signal.field（小写）`);
+    else if (r.signal && f.split('.')[0] !== r.signal) errs.push(`条件${j + 1}: field 前缀须与 signal 一致（${r.signal}.*）`);
+    if (!OPS.includes(c.op)) errs.push(`条件${j + 1}: op 非法（${OPS.join('/')}）`);
+    if (['gt', 'lt', 'gte', 'lte'].includes(c.op) && isNaN(Number(String(c.value ?? '').trim())))
+      errs.push(`条件${j + 1}: ${c.op} 的值必须是数字`);
+  });
+  const cd = parseInt(r.cooldown_minutes, 10);
+  if (!Number.isInteger(+r.cooldown_minutes) || cd < 1 || cd > 10080) errs.push('cooldown_minutes 须为 1-10080 的整数');
+  if (!(+r.priority >= 1 && +r.priority <= 5)) errs.push('priority 须在 1-5');
+  if (!String(r.template_hint || '').trim()) errs.push('template_hint 不能为空（给调用方 的情境提示）');
+  return errs;
+}
+/* 保存整个请求期间锁住按钮，慢请求不允许第二次提交覆盖。 */
+function debounceSave(btn){
+  if (!btn || btn.disabled) return false;
+  btn.disabled = true;
+  return true;
+}
+function saveRules(){
+  if (RULES_SAVING) return;
+  if (EDIT_IDX >= 0){ toast('先完成或取消当前正在编辑的规则', true); return; }
+  for (let i = 0; i < RULES.length; i++){
+    const errs = validateRule(RULES[i], RULES, i);
+    if (errs.length){ toast(`规则 ${RULES[i].id || '#' + (i + 1)}：${errs[0]}`, true); return; }
+  }
+  const st = document.getElementById('rules-save-state');
+  if (!debounceSave(document.getElementById('rules-save-btn'))) return;
+  st.textContent = '保存中…';
+  RULES_SAVING = true;
+  document.getElementById('rules-list').inert = true;
+  const payload = {
+    version: VERSION,
+    rules: RULES.map(r => ({
+      id: String(r.id).trim(),
+      enabled: !!r.enabled,
+      signal: r.signal,
+      conditions: (r.conditions || []).map(c => ({
+        field: String(c.field).trim(),
+        op: c.op,
+        value: coerceValue(c.op, c.value),
+      })),
+      cooldown_minutes: parseInt(r.cooldown_minutes, 10),
+      priority: +r.priority || 3,
+      template_hint: String(r.template_hint || '').trim(),
+      note: String(r.note || '').trim(),
+    })),
+  };
+  apiPost('page/mood/rules/save', payload).then(() => {
+    st.textContent = '已保存并热生效 ✓';
+    toast('规则库已保存');
+    return loadRules(true);
+  }).catch(e => {
+    st.textContent = '保存失败：' + (e.message || e) + '（编辑内容已保留）';
+    toast('保存失败: ' + (e.message || e), true);
+  }).finally(() => {
+    RULES_SAVING = false;
+    document.getElementById('rules-list').inert = false;
+    document.getElementById('rules-save-btn').disabled = false;
+  });
+}
+function addRule(){
+  if (RULES_SAVING){ toast('规则正在保存，请等待完成', true); return; }
+  if (EDIT_IDX >= 0){ toast('先完成或取消当前正在编辑的规则', true); return; }
+  let n = RULES.length + 1;
+  while (RULES.some(r => r.id === `rule_${n}`)) n++;
+  RULES.push({id: `rule_${n}`, enabled: true, signal: 'presence', conditions: [{field: 'presence.room_changed', op: 'changed', value: ''}],
+    cooldown_minutes: 30, priority: 3, template_hint: '', note: '', _draft: true});
+  EDIT_IDX = RULES.length - 1;
+  EDIT_COPY = JSON.parse(JSON.stringify(RULES[EDIT_IDX]));
+  renderRules();
+  toast('新规则草稿——填完点「完成编辑」再保存规则库');
+}
+function rulesHaveDraft(){ return RULES_SAVING || EDIT_IDX >= 0 || (RULES_SNAPSHOT !== '' && dirty()); }
+async function loadRules(force){
+  if (!force && rulesHaveDraft()) return;
+  const seq = ++RULES_LOAD_SEQ;
+  try{
+    const d = await apiGet('page/mood/rules');
+    // 请求发出后也可能开始编辑；旧快照不得覆盖此时的新草稿。
+    if (seq !== RULES_LOAD_SEQ || (!force && rulesHaveDraft())) return;
+    VERSION = d.version || '';
+    RULES = (d.rules || []).map(r => ({...r, conditions: (r.conditions || []).map(c => ({...c}))}));
+    RULES_SNAPSHOT = JSON.stringify(cleanRules(RULES));
+    EDIT_IDX = -1; EDIT_COPY = null;
+    document.getElementById('meta').textContent =
+      `v${VERSION || '?'} ｜ 规则 ${RULES.length} 条 ｜ 信号源 4 路 ｜ 触发建议 ${TRIGGERS.length} 条在册`;
+    renderRules();
+  }catch(e){
+    if (seq !== RULES_LOAD_SEQ || rulesHaveDraft()) return;
+    if (RULES_SNAPSHOT !== '') toast('规则刷新失败，已保留当前内容', true);
+    else document.getElementById('rules-list').innerHTML = `<div class="empty err">规则加载失败：${esc(e.message || e)}</div>`;
+  }
+}
+
+/* ================================================================
+   触发建议 + 倒计时
+   ================================================================ */
+function trigHtml(t){
+  const ctx = Object.entries(t.context || {}).map(([k, v]) =>
+    `<span class="ctx-chip">${esc(k)}=${esc(String(v))}</span>`).join('');
+  return `<div class="trig">
+    <span class="prio ${prioCls(t.priority)}">${esc('P' + (t.priority ?? '?'))}</span>
+    <span class="sigtag">${esc(SIGNALS[t.signal] ? SIGNALS[t.signal].label : t.signal)}</span>
+    <span class="hint" style="display:inline">@${esc(t.rule_id)}</span>
+    <div class="treason">${esc(t.reason || '')}</div>
+    <div>${ctx}</div>
+    <div class="tmeta">触发 ${esc(hm(t.created_at))}｜剩余 <b data-countdown="${esc(t.expires_at || '')}">--:--</b></div>
+  </div>`;
+}
+async function loadTriggers(){
+  const box = document.getElementById('trig-list');
+  try{
+    const d = await apiGet('page/mood/triggers');
+    TRIGGERS = d.triggers || [];
+    document.getElementById('meta').textContent =
+      `v${VERSION || '?'} ｜ 规则 ${RULES.length} 条 ｜ 信号源 4 路 ｜ 触发建议 ${TRIGGERS.length} 条在册`;
+    document.getElementById('trig-updated').textContent = d.updated_at ? `（产出 ${hm(d.updated_at)}）` : '';
+    box.innerHTML = TRIGGERS.length ? TRIGGERS.map(trigHtml).join('')
+      : '<div class="empty">当前无触发建议——规则命中后这里会出现（带过期倒计时）</div>';
+    tickCountdown();
+  }catch(e){
+    box.innerHTML = `<div class="empty err">触发建议加载失败：${esc(e.message || e)}</div>`;
+  }
+}
+function tickCountdown(){
+  const now = Date.now();
+  document.querySelectorAll('[data-countdown]').forEach(el => {
+    const iso = el.dataset.countdown;
+    if (!iso){ el.textContent = '不过期'; return; }
+    const ms = Date.parse(iso);
+    if (isNaN(ms)){ el.textContent = '--:--'; return; }
+    const left = ms - now;
+    if (left <= 0){ el.textContent = '已过期'; return; }
+    const m = Math.floor(left / 60000), s = Math.floor(left % 60000 / 1000);
+    el.textContent = m >= 60 ? `${Math.floor(m / 60)}时${m % 60}分` : `${m}:${String(s).padStart(2, '0')}`;
+  });
+}
+setInterval(tickCountdown, 1000);
+
+/* ================================================================
+   触发历史（时间线）
+   ================================================================ */
+async function loadHistory(){
+  const box = document.getElementById('hist-list');
+  try{
+    const d = await apiGet('page/mood/history', {limit: 50});
+    const items = (d.items || []).slice().sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+    document.getElementById('hist-count').textContent = `（${items.length} 条）`;
+    box.innerHTML = items.length ? items.map(it => `
+      <div class="tl-item">
+        <span class="tl-dot ${it.fired ? 'fired' : 'unfired'}" title="${it.fired ? '已下发' : '未下发'}"></span>
+        <span class="tt">${esc(hm(it.created_at))}</span>
+        <span>
+          <span class="tag">${esc(SIGNALS[it.signal] ? SIGNALS[it.signal].label : it.signal)}</span>
+          ${esc(it.reason || '')} <span class="rid">@${esc(it.rule_id)}</span>
+          <span class="rid">${it.fired ? '·已触发' : '·未触发'}</span>
+        </span>
+      </div>`).join('')
+      : '<div class="empty">暂无历史——触发产生后会记录在此（最近 50 条）</div>';
+  }catch(e){
+    box.innerHTML = `<div class="empty err">历史加载失败：${esc(e.message || e)}</div>`;
+  }
+}
+
+/* ---- 清空冷却与历史（POST page/mood/state/reset，两步确认） ---- */
+function resetState(){
+  const btn = document.getElementById('hist-reset-btn');
+  if (btn.dataset.armed !== '1'){
+    btn.dataset.armed = '1';
+    btn.dataset.origText = btn.textContent;
+    btn.textContent = '再点一次确认清空';
+    btn.classList.add('danger-armed');
+    setTimeout(() => {
+      if (btn.isConnected && btn.dataset.armed === '1'){
+        btn.dataset.armed = ''; btn.textContent = btn.dataset.origText; btn.classList.remove('danger-armed');
+      }
+    }, 4000);
+    return;
+  }
+  btn.dataset.armed = ''; btn.textContent = btn.dataset.origText; btn.classList.remove('danger-armed');
+  apiPost('page/mood/state/reset').then(() => {
+    toast('已清空冷却与触发历史');
+    loadTriggers();
+    loadHistory();
+  }).catch(e => toast('清空失败: ' + (e.message || e), true));
+}
+
+/* ================================================================
+   汇总刷新
+   ================================================================ */
+let REFRESH_PENDING = false;
+async function refreshAll(){
+  if (REFRESH_PENDING) return;
+  REFRESH_PENDING = true;
+  try{ await Promise.all([loadSignals(), loadTriggers(), loadHistory(), loadRules(false)]); }
+  finally{ REFRESH_PENDING = false; }
+}
+refreshAll();
+setInterval(() => { if (!document.hidden && document.getElementById('auto').checked) refreshAll(); }, 30000);
+</script>
+</body>
+</html>

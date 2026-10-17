@@ -1,0 +1,399 @@
+{
+ "id": "manor",
+ "name": "合成测试空间",
+ "schema": 1,
+ "whitelist": [
+  "demo-user"
+ ],
+ "characters": {
+  "she_name": "示例甲",
+  "he_name": "示例用户"
+ },
+ "floors": [
+  {
+   "id": "L1",
+   "name": "一层",
+   "z": 0,
+   "stair_at": [
+    1,
+    1
+   ]
+  },
+  {
+   "id": "L2",
+   "name": "二层",
+   "z": 1,
+   "stair_at": [
+    1,
+    1
+   ]
+  },
+  {
+   "id": "OUT",
+   "name": "室外",
+   "z": 0
+  }
+ ],
+ "rooms": [
+  {
+   "id": "living",
+   "label": "客厅",
+   "floor": "L1",
+   "center": [
+    2,
+    2
+   ],
+   "size": [
+    4,
+    4
+   ],
+   "aliases": [],
+   "ambiance": "这是独立编写的合成自动化测试空间，用于验证长氛围文本被完整处理和按预算缩略。",
+   "props": [
+    "桌子",
+    "椅子"
+   ],
+   "mood_bias": [
+    0,
+    0
+   ],
+   "scene_words": []
+  },
+  {
+   "id": "kitchen",
+   "label": "厨房",
+   "floor": "L1",
+   "center": [
+    8,
+    2
+   ],
+   "size": [
+    4,
+    4
+   ],
+   "aliases": [],
+   "ambiance": "这是独立编写的合成自动化测试空间，用于验证长氛围文本被完整处理和按预算缩略。",
+   "props": [
+    "桌子",
+    "椅子"
+   ],
+   "mood_bias": [
+    0,
+    0
+   ],
+   "scene_words": []
+  },
+  {
+   "id": "study",
+   "label": "书房",
+   "floor": "L1",
+   "center": [
+    14,
+    2
+   ],
+   "size": [
+    4,
+    4
+   ],
+   "aliases": [],
+   "ambiance": "这是独立编写的合成自动化测试空间，用于验证长氛围文本被完整处理和按预算缩略。",
+   "props": [
+    "桌子",
+    "椅子"
+   ],
+   "mood_bias": [
+    0,
+    0
+   ],
+   "scene_words": []
+  },
+  {
+   "id": "master-bed",
+   "label": "主卧",
+   "floor": "L2",
+   "center": [
+    2,
+    8
+   ],
+   "size": [
+    4,
+    4
+   ],
+   "aliases": [
+    "卧室"
+   ],
+   "ambiance": "这是独立编写的合成自动化测试空间，用于验证长氛围文本被完整处理和按预算缩略。",
+   "props": [
+    "桌子",
+    "椅子"
+   ],
+   "mood_bias": [
+    0,
+    0
+   ],
+   "scene_words": []
+  },
+  {
+   "id": "veranda",
+   "label": "檐廊",
+   "floor": "L1",
+   "center": [
+    8,
+    8
+   ],
+   "size": [
+    4,
+    4
+   ],
+   "aliases": [],
+   "ambiance": "这是独立编写的合成自动化测试空间，用于验证长氛围文本被完整处理和按预算缩略。",
+   "props": [
+    "桌子",
+    "椅子"
+   ],
+   "mood_bias": [
+    0,
+    0
+   ],
+   "scene_words": []
+  },
+  {
+   "id": "garden",
+   "label": "花圃",
+   "floor": "OUT",
+   "center": [
+    14,
+    8
+   ],
+   "size": [
+    4,
+    4
+   ],
+   "aliases": [],
+   "ambiance": "这是独立编写的合成自动化测试空间，用于验证长氛围文本被完整处理和按预算缩略。",
+   "props": [
+    "桌子",
+    "椅子"
+   ],
+   "mood_bias": [
+    0,
+    0
+   ],
+   "scene_words": []
+  },
+  {
+   "id": "gatehouse",
+   "label": "门房",
+   "floor": "OUT",
+   "center": [
+    2,
+    14
+   ],
+   "size": [
+    4,
+    4
+   ],
+   "aliases": [],
+   "ambiance": "这是独立编写的合成自动化测试空间，用于验证长氛围文本被完整处理和按预算缩略。",
+   "props": [
+    "桌子",
+    "椅子"
+   ],
+   "mood_bias": [
+    0,
+    0
+   ],
+   "scene_words": []
+  },
+  {
+   "id": "dining",
+   "label": "餐厅",
+   "floor": "L1",
+   "center": [
+    8,
+    14
+   ],
+   "size": [
+    4,
+    4
+   ],
+   "aliases": [],
+   "ambiance": "这是独立编写的合成自动化测试空间，用于验证长氛围文本被完整处理和按预算缩略。",
+   "props": [
+    "桌子",
+    "椅子"
+   ],
+   "mood_bias": [
+    0,
+    0
+   ],
+   "scene_words": []
+  },
+  {
+   "id": "bath",
+   "label": "浴室",
+   "floor": "L2",
+   "center": [
+    14,
+    14
+   ],
+   "size": [
+    4,
+    4
+   ],
+   "aliases": [],
+   "ambiance": "这是独立编写的合成自动化测试空间，用于验证长氛围文本被完整处理和按预算缩略。",
+   "props": [
+    "桌子",
+    "椅子"
+   ],
+   "mood_bias": [
+    0,
+    0
+   ],
+   "scene_words": []
+  },
+  {
+   "id": "hall",
+   "label": "门厅",
+   "floor": "L1",
+   "center": [
+    24,
+    2
+   ],
+   "size": [
+    4,
+    4
+   ],
+   "aliases": [],
+   "props": [],
+   "ambiance": "这是独立编写的合成自动化测试空间，用于验证长氛围文本被完整处理和按预算缩略。",
+   "scene_words": [],
+   "mood_bias": [
+    0,
+    0
+   ]
+  }
+ ],
+ "edges": [
+  {
+   "a": "study",
+   "b": "living",
+   "seconds": 5
+  },
+  {
+   "a": "living",
+   "b": "kitchen",
+   "seconds": 5
+  },
+  {
+   "a": "living",
+   "b": "veranda",
+   "seconds": 10
+  },
+  {
+   "a": "living",
+   "b": "garden",
+   "seconds": 15
+  },
+  {
+   "a": "garden",
+   "b": "gatehouse",
+   "seconds": 15
+  },
+  {
+   "a": "living",
+   "b": "master-bed",
+   "seconds": 20
+  },
+  {
+   "a": "living",
+   "b": "dining",
+   "seconds": 8
+  },
+  {
+   "a": "master-bed",
+   "b": "bath",
+   "seconds": 10
+  },
+  {
+   "a": "hall",
+   "b": "living",
+   "seconds": 4
+  }
+ ],
+ "rainy_fallback": {
+  "garden": "living",
+  "gatehouse": "living"
+ },
+ "default_schedule": [
+  {
+   "from_h": 0,
+   "to_h": 6,
+   "room": "master-bed"
+  },
+  {
+   "from_h": 6,
+   "to_h": 8,
+   "room": "kitchen"
+  },
+  {
+   "from_h": 8,
+   "to_h": 12,
+   "room": "garden"
+  },
+  {
+   "from_h": 12,
+   "to_h": 14,
+   "room": "living"
+  },
+  {
+   "from_h": 14,
+   "to_h": 16,
+   "room": "study"
+  },
+  {
+   "from_h": 16,
+   "to_h": 18,
+   "room": "veranda"
+  },
+  {
+   "from_h": 18,
+   "to_h": 22,
+   "room": "living"
+  },
+  {
+   "from_h": 22,
+   "to_h": 24,
+   "room": "master-bed"
+  }
+ ],
+ "activity_map": [
+  {
+   "match": [
+    "看书",
+    "读书",
+    "书房"
+   ],
+   "room": "study"
+  },
+  {
+   "match": [
+    "做饭",
+    "烧菜",
+    "厨房"
+   ],
+   "room": "kitchen"
+  },
+  {
+   "match": [
+    "花圃",
+    "修剪"
+   ],
+   "room": "garden"
+  }
+ ],
+ "render": {
+  "max_chars": 260
+ }
+}

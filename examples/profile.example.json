@@ -1,0 +1,22 @@
+{
+  "id": "example",
+  "name": "示例角色",
+  "whitelist": ["REPLACE_WITH_YOUR_USER_ID"],
+  "parts": [
+    {
+      "id": "shoulder",
+      "label": "肩膀",
+      "aliases": ["肩"],
+      "sens": 5,
+      "half_life": 1200,
+      "radiate": {}
+    }
+  ],
+  "tiers": [
+    {"key": "notice", "min": 0.15},
+    {"key": "react", "min": 0.3},
+    {"key": "lose", "min": 0.5},
+    {"key": "overload", "min": 0.85}
+  ],
+  "render": {"max_chars": 400, "show_numbers_to_model": true}
+}

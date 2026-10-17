@@ -1,0 +1,100 @@
+{
+ "id": "example",
+ "name": "示例角色",
+ "whitelist": [],
+ "forbidden": [
+  "public",
+  "stranger",
+  "third_party"
+ ],
+ "body": {
+  "height_cm": 170
+ },
+ "parts": [
+  {
+   "id": "ear_tip",
+   "label": "耳尖",
+   "sens": 9,
+   "half_life": 900,
+   "aliases": [
+    "耳朵"
+   ],
+   "radiate": {},
+   "viz": [
+    100,
+    60
+   ]
+  },
+  {
+   "id": "nape",
+   "label": "后颈",
+   "sens": 7,
+   "half_life": 900,
+   "aliases": [],
+   "radiate": {},
+   "viz": [
+    100,
+    96
+   ]
+  },
+  {
+   "id": "shoulder",
+   "label": "肩膀",
+   "sens": 5,
+   "half_life": 900,
+   "aliases": [],
+   "radiate": {},
+   "viz": [
+    140,
+    156
+   ]
+  },
+  {
+   "id": "hand",
+   "label": "手掌",
+   "sens": 7,
+   "half_life": 900,
+   "aliases": [],
+   "radiate": {},
+   "viz": [
+    140,
+    228
+   ]
+  },
+  {
+   "id": "sole",
+   "label": "脚心",
+   "sens": 7,
+   "half_life": 900,
+   "aliases": [],
+   "radiate": {},
+   "viz": [
+    140,
+    264
+   ]
+  }
+ ],
+ "tiers": [
+  {
+   "key": "notice",
+   "min": 0.15
+  },
+  {
+   "key": "react",
+   "min": 0.3
+  },
+  {
+   "key": "lose",
+   "min": 0.5
+  },
+  {
+   "key": "overload",
+   "min": 0.85
+  }
+ ],
+ "render": {
+  "max_chars": 400,
+  "show_numbers_to_model": true
+ },
+ "params": {}
+}

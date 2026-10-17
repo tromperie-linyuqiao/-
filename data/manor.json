@@ -1,0 +1,82 @@
+{
+ "id": "manor",
+ "name": "示例空间",
+ "schema": 1,
+ "whitelist": [],
+ "characters": {
+  "she_name": "示例角色",
+  "he_name": "用户"
+ },
+ "floors": [
+  {
+   "id": "L1",
+   "name": "一层",
+   "z": 0,
+   "stair_at": [
+    1,
+    1
+   ]
+  }
+ ],
+ "rooms": [
+  {
+   "id": "room-a",
+   "label": "休息区",
+   "floor": "L1",
+   "center": [
+    3,
+    3
+   ],
+   "size": [
+    4,
+    4
+   ],
+   "aliases": [],
+   "props": [
+    "椅子"
+   ],
+   "ambiance": "安静的示例房间。",
+   "scene_words": [],
+   "mood_bias": [
+    0,
+    0
+   ]
+  },
+  {
+   "id": "room-b",
+   "label": "工作区",
+   "floor": "L1",
+   "center": [
+    9,
+    3
+   ],
+   "size": [
+    4,
+    4
+   ],
+   "aliases": [],
+   "props": [
+    "桌子"
+   ],
+   "ambiance": "用于自定义的中性空间。",
+   "scene_words": [],
+   "mood_bias": [
+    0,
+    0
+   ]
+  }
+ ],
+ "edges": [
+  {
+   "a": "room-a",
+   "b": "room-b",
+   "seconds": 15
+  }
+ ],
+ "default_schedule": [],
+ "activity_map": [],
+ "rainy_fallback": {},
+ "render": {
+  "max_chars": 260
+ }
+}

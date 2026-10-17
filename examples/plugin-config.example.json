@@ -1,0 +1,15 @@
+{
+  "vb_enabled": true,
+  "sp_enabled": true,
+  "sp_migrate_legacy_manor": false,
+  "mo_enabled": true,
+  "vb_default_character": "example",
+  "vb_enabled_profiles": "example",
+  "vb_inject_position": "user",
+  "vb_llm_fallback_enabled": false,
+  "vb_tz_utc_offset": -1,
+  "presence_layer_enabled": true,
+  "presence_context_enabled": true,
+  "presence_context_max_chars": 420,
+  "presence_repeat_seconds": 300
+}

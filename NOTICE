@@ -1,0 +1,21 @@
+VirtualBody / 虚拟存在层 0.35.1
+SPDX-License-Identifier: AGPL-3.0-or-later
+
+发行维护：tromperie-linyuqiao
+源码：https://github.com/tromperie-linyuqiao/-
+
+本发行版基于既有 VirtualBody 实现及维护者委托 GLM 开发的空间模块整理。
+2026-10-18，维护者明确同意主体按 GNU Affero General Public License
+version 3 or, at your option, any later version 发布；原文见 LICENSE。
+不附加禁止商业使用的限制，也不将此前讨论的 PolyForm 应用于本发行版。
+
+metadata/main 中历史 author=menglimi 为运行身份兼容而保留，
+不将其推定为本次发行代码的唯一版权人、授权者或背书方。
+具体来源及修改范围见 SOURCE_AND_LICENSE.md、CHANGELOG.md。
+
+本地 pinyin-pro 3.24.2 的原版权及 MIT 许可保留；可选远程 Three.js r160
+遵守其 MIT 许可。第三方代码、参考许可全文及已有版权通知不被重新授权。
+详见 THIRD_PARTY_NOTICES.md 与 licenses/。
+
+本软件按许可所述不提供担保。修改并部署远程交互版本的运营者，应向用户
+清楚提供其实际运行版本的对应源码，不能只链接一个与部署版本不同的副本。

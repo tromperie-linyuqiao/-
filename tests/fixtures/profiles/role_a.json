@@ -1,0 +1,342 @@
+{
+ "id": "role_a",
+ "name": "示例甲",
+ "whitelist": [
+  "demo-user"
+ ],
+ "forbidden": [
+  "public",
+  "stranger",
+  "third_party"
+ ],
+ "body": {
+  "height_cm": 180
+ },
+ "parts": [
+  {
+   "id": "ear_tip",
+   "label": "耳尖",
+   "sens": 9,
+   "half_life": 900,
+   "aliases": [
+    "耳朵"
+   ],
+   "radiate": {
+    "tail_root": 0.3
+   },
+   "viz": [
+    100,
+    60
+   ]
+  },
+  {
+   "id": "tail_root",
+   "label": "尾根",
+   "sens": 6,
+   "half_life": 900,
+   "aliases": [
+    "尾巴"
+   ],
+   "radiate": {
+    "waist": 0.2
+   },
+   "viz": [
+    120,
+    72
+   ]
+  },
+  {
+   "id": "waist",
+   "label": "腰侧",
+   "sens": 3,
+   "half_life": 900,
+   "aliases": [
+    "腰"
+   ],
+   "radiate": {},
+   "viz": [
+    140,
+    84
+   ]
+  },
+  {
+   "id": "nape",
+   "label": "后颈",
+   "sens": 7,
+   "half_life": 900,
+   "aliases": [],
+   "radiate": {},
+   "viz": [
+    100,
+    96
+   ]
+  },
+  {
+   "id": "head_top",
+   "label": "头顶",
+   "sens": 6,
+   "half_life": 900,
+   "aliases": [],
+   "radiate": {},
+   "viz": [
+    120,
+    108
+   ]
+  },
+  {
+   "id": "cheek",
+   "label": "脸颊",
+   "sens": 7,
+   "half_life": 900,
+   "aliases": [],
+   "radiate": {},
+   "viz": [
+    140,
+    120
+   ]
+  },
+  {
+   "id": "lips",
+   "label": "嘴唇",
+   "sens": 9,
+   "half_life": 900,
+   "aliases": [
+    "唇"
+   ],
+   "radiate": {},
+   "viz": [
+    100,
+    132
+   ]
+  },
+  {
+   "id": "neck_front",
+   "label": "颈前",
+   "sens": 6,
+   "half_life": 900,
+   "aliases": [],
+   "radiate": {},
+   "viz": [
+    120,
+    144
+   ]
+  },
+  {
+   "id": "shoulder",
+   "label": "肩膀",
+   "sens": 5,
+   "half_life": 900,
+   "aliases": [],
+   "radiate": {},
+   "viz": [
+    140,
+    156
+   ]
+  },
+  {
+   "id": "back",
+   "label": "背部",
+   "sens": 3,
+   "half_life": 900,
+   "aliases": [
+    "背"
+   ],
+   "radiate": {},
+   "viz": [
+    100,
+    168
+   ]
+  },
+  {
+   "id": "chest",
+   "label": "胸前",
+   "sens": 6,
+   "half_life": 900,
+   "aliases": [],
+   "radiate": {},
+   "viz": [
+    120,
+    180
+   ]
+  },
+  {
+   "id": "abdomen",
+   "label": "腹部",
+   "sens": 5,
+   "half_life": 900,
+   "aliases": [],
+   "radiate": {},
+   "viz": [
+    140,
+    192
+   ]
+  },
+  {
+   "id": "upper_arm",
+   "label": "上臂",
+   "sens": 4,
+   "half_life": 900,
+   "aliases": [],
+   "radiate": {},
+   "viz": [
+    100,
+    204
+   ]
+  },
+  {
+   "id": "forearm",
+   "label": "前臂",
+   "sens": 5,
+   "half_life": 900,
+   "aliases": [],
+   "radiate": {},
+   "viz": [
+    120,
+    216
+   ]
+  },
+  {
+   "id": "hand",
+   "label": "手掌",
+   "sens": 7,
+   "half_life": 900,
+   "aliases": [],
+   "radiate": {},
+   "viz": [
+    140,
+    228
+   ]
+  },
+  {
+   "id": "thigh",
+   "label": "大腿",
+   "sens": 3,
+   "half_life": 900,
+   "aliases": [],
+   "radiate": {},
+   "viz": [
+    100,
+    240
+   ]
+  },
+  {
+   "id": "calf",
+   "label": "小腿",
+   "sens": 4,
+   "half_life": 900,
+   "aliases": [],
+   "radiate": {},
+   "viz": [
+    120,
+    252
+   ]
+  },
+  {
+   "id": "sole",
+   "label": "脚心",
+   "sens": 7,
+   "half_life": 900,
+   "aliases": [],
+   "radiate": {},
+   "viz": [
+    140,
+    264
+   ]
+  },
+  {
+   "id": "custom_1",
+   "label": "01",
+   "sens": 8,
+   "half_life": 900,
+   "aliases": [],
+   "radiate": {},
+   "viz": [
+    100,
+    200
+   ]
+  },
+  {
+   "id": "custom_2",
+   "label": "02",
+   "sens": 8,
+   "half_life": 900,
+   "aliases": [],
+   "radiate": {},
+   "viz": [
+    100,
+    210
+   ]
+  },
+  {
+   "id": "custom_3",
+   "label": "03",
+   "sens": 8,
+   "half_life": 900,
+   "aliases": [],
+   "radiate": {},
+   "viz": [
+    100,
+    220
+   ]
+  },
+  {
+   "id": "custom_4",
+   "label": "04",
+   "sens": 8,
+   "half_life": 900,
+   "aliases": [],
+   "radiate": {},
+   "viz": [
+    100,
+    230
+   ]
+  },
+  {
+   "id": "custom_5",
+   "label": "05",
+   "sens": 8,
+   "half_life": 900,
+   "aliases": [],
+   "radiate": {},
+   "viz": [
+    100,
+    240
+   ]
+  },
+  {
+   "id": "palm",
+   "label": "手心",
+   "sens": 6,
+   "half_life": 900,
+   "aliases": [],
+   "radiate": {},
+   "viz": [
+    100,
+    240
+   ]
+  }
+ ],
+ "tiers": [
+  {
+   "key": "notice",
+   "min": 0.15
+  },
+  {
+   "key": "react",
+   "min": 0.3
+  },
+  {
+   "key": "lose",
+   "min": 0.5
+  },
+  {
+   "key": "overload",
+   "min": 0.85
+  }
+ ],
+ "render": {
+  "max_chars": 400,
+  "show_numbers_to_model": true
+ },
+ "params": {}
+}

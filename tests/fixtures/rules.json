@@ -1,0 +1,73 @@
+{
+ "schema": 1,
+ "rules": [
+  {
+   "id": "presence_room_changed",
+   "enabled": true,
+   "signal": "presence",
+   "conditions": [
+    {
+     "field": "presence.she_room",
+     "op": "changed"
+    }
+   ],
+   "cooldown_minutes": 30,
+   "priority": 3,
+   "template_hint": "虚拟空间位置有变化。"
+  },
+  {
+   "id": "longing_invite",
+   "enabled": true,
+   "signal": "presence",
+   "conditions": [
+    {
+     "field": "presence.arousal",
+     "op": "gte",
+     "value": 0.45
+    },
+    {
+     "field": "presence.body_phase",
+     "op": "eq",
+     "value": "building"
+    }
+   ],
+   "cooldown_minutes": 240,
+   "priority": 4,
+   "template_hint": "互动邀约线索：{mood_word}。表达应依照实际对话。"
+  },
+  {
+   "id": "mood_warm",
+   "enabled": true,
+   "signal": "presence",
+   "conditions": [
+    {
+     "field": "presence.same_room",
+     "op": "eq",
+     "value": true
+    },
+    {
+     "field": "presence.env_valence",
+     "op": "gte",
+     "value": 0.3
+    }
+   ],
+   "cooldown_minutes": 120,
+   "priority": 4,
+   "template_hint": "当前虚拟空间传递暖意。"
+  },
+  {
+   "id": "reading_new_chapter",
+   "enabled": true,
+   "signal": "reading",
+   "conditions": [
+    {
+     "field": "reading.chapter_index",
+     "op": "changed"
+    }
+   ],
+   "cooldown_minutes": 60,
+   "priority": 3,
+   "template_hint": "资料处理进度有更新。"
+  }
+ ]
+}

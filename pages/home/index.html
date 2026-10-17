@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>存在层总览 · 虚拟存在层</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans SC',sans-serif;background:#0d1117;color:#c9d1d9;min-height:100vh;padding:12px;font-size:12px}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px}
+.top h1{font-size:17px;color:#58a6ff}
+.top .meta{font-size:12px;color:#8b949e}
+button{background:#21262d;color:#58a6ff;border:1px solid #30363d;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:13px}
+button:hover{background:#30363d}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,380px),1fr));gap:16px}
+.card{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:16px}
+.card h2{font-size:13px;color:#e6edf3;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.card h2 .who{font-size:11px;color:#8b949e;font-weight:400}
+.badge{font-size:11px;padding:2px 8px;border-radius:10px;background:#1f6feb33;color:#58a6ff;border:1px solid #1f6feb55}
+.badge.afterglow{color:#d29922;border-color:#d2992255;background:#d2992222}
+.badge.cooldown{color:#8b949e;border-color:#30363d;background:#21262d}
+.kv{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12px;color:#8b949e;margin-bottom:12px}
+.kv b{color:#e6edf3;font-weight:600}
+.place{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;line-height:1.7}
+.place .tag{display:inline-block;font-size:11px;color:#8b949e;border:1px solid #30363d;border-radius:4px;padding:0 6px;margin-right:8px}
+.place .arrow{color:#58a6ff;font-weight:600}
+.place .eta{color:#d29922;font-size:12px;margin-left:4px}
+.place .fresh{color:#3fb950;font-size:11px;margin-right:2px}
+.band{font-size:11px;padding:1px 8px;border-radius:10px;border:1px solid;margin-left:8px;vertical-align:1px}
+.band.same{color:#3fb950;border-color:#3fb95055;background:#3fb95022}
+.band.near{color:#d29922;border-color:#d2992255;background:#d2992222}
+.band.far{color:#8b949e;border-color:#30363d;background:#21262d}
+.band.unknown{color:#8b949e;border-color:#21262d;background:transparent}
+.lowconf{font-size:11px;color:#d29922;margin-left:6px}
+.bar{height:8px;background:#21262d;border-radius:4px;overflow:hidden;margin:4px 0 8px}
+.bar>i{display:block;height:100%;background:linear-gradient(90deg,#1f6feb,#d29922,#f85149);border-radius:4px;transition:width .4s}
+.parts{margin-top:6px}
+.prow{display:flex;align-items:center;gap:8px;font-size:12px;padding:3px 0}
+.prow .pl{width:88px;flex-shrink:0;color:#c9d1d9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow .pbar{flex:1;height:6px;background:#21262d;border-radius:3px;overflow:hidden}
+.prow .pbar>i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#1f6feb,#d29922)}
+.prow .pv{width:38px;text-align:right;font-variant-numeric:tabular-nums;color:#e6edf3}
+.prow .tier{font-size:10px;color:#8b949e;border:1px solid #30363d;border-radius:8px;padding:0 6px}
+.prow .tier.lose,.prow .tier.overload{color:#f85149;border-color:#f8514955}
+.prow .tier.react{color:#d29922;border-color:#d2992255}
+.matword{font-size:10px;color:#f778ba;border:1px solid #f778ba55;background:#f778ba22;border-radius:8px;padding:0 6px}
+.mats{margin-top:8px;font-size:12px;color:#8b949e;line-height:1.8}
+.mats .t{color:#58a6ff;font-size:11px;border-bottom:1px solid #21262d;display:block;padding-bottom:2px;margin-bottom:2px}
+.mats .at{color:#8b949e;font-variant-numeric:tabular-nums}
+.foot{margin-top:10px;font-size:11px;color:#8b949e;text-align:right}
+.empty{color:#8b949e;text-align:center;padding:40px 0;font-size:13px}
+.err{color:#f85149;font-size:13px;padding:20px;text-align:center}
+.toast{position:fixed;bottom:24px;right:24px;background:#1f6feb;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;display:none;box-shadow:0 4px 20px #0008;max-width:60vw}
+.toast.err{background:#b62324}
+/* 四页互跳导航条（沙箱内无法直接跳转，见脚本注） */
+.xnav{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #21262d}
+.xnav .xt{font-size:11px;color:#8b949e;margin-right:4px}
+.xnav a{font-size:12px;color:#8b949e;border:1px solid #30363d;border-radius:6px;padding:3px 10px;background:#161b22;cursor:pointer;text-decoration:none}
+.xnav a:hover{background:#21262d;color:#c9d1d9}
+.xnav a.cur{color:#58a6ff;border-color:#1f6feb66;background:#1f6feb22;cursor:default}
+/* 自定义参数速览卡（只读键值表，样式对齐其余页 table 语言） */
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{color:#8b949e;font-weight:500;text-align:left;padding:5px 8px;border-bottom:1px solid #21262d}
+td{padding:5px 8px;border-bottom:1px solid #21262d}
+td .raw{color:#8b949e;font-size:11px;margin-left:6px}
+/* ---- 五页统一响应式基座：卡片限宽居中 / 表格容器横滚 / 触摸目标 ≥36px ---- */
+.xnav,.top,.grid,.card{max-width:960px;margin-left:auto;margin-right:auto}
+#config-card{overflow-x:auto}
+.twrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+@media (max-width:639px){
+  button{min-height:36px}
+}
+/* 保存反馈在手机窄屏保持可读，焦点操作同样可见。 */
+.toast{max-width:calc(100vw - 32px);overflow-wrap:anywhere;z-index:1000}
+button:disabled{opacity:.6;cursor:wait}
+.xnav a:focus-visible,button:focus-visible{outline:2px solid #58a6ff;outline-offset:2px}
+@media(max-width:639px){.xnav a{min-height:36px;display:inline-flex;align-items:center}.rowbtn{min-height:32px}}
+</style>
+</head>
+<body>
+<div class="xnav"><span class="xt">存在层页面</span>
+  <a data-pg="身体">身体</a>
+  <a data-pg="空间">空间</a>
+  <a data-pg="材质">材质</a>
+  <a class="cur" data-pg="总览">总览</a>
+  <a data-pg="心绪">心绪</a>
+</div>
+<div class="top">
+  <div>
+    <h1>存在层总览 · 空间 × 身体</h1>
+    <div class="meta" id="meta">加载中…</div>
+  </div>
+  <div>
+    <button onclick="load()">刷新</button>
+    <label style="font-size:12px;color:#8b949e;margin-left:8px"><input type="checkbox" id="auto" checked> 30s 自动刷新</label>
+  </div>
+</div>
+<div class="grid" id="grid"><div class="empty">加载中…</div></div>
+      <div class="card" id="links-card" style="margin-top:14px"></div>
+      <div class="card" id="runtime-card" style="margin-top:14px;display:none"></div>
+      <div class="card" id="config-card" style="margin-top:14px"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="/api/plugin/page/bridge-sdk.js"></script>
+<script>
+/* Cross-page selection remains in the authenticated AstrBot plugin detail UI. */
+(function () {
+  function bindNavigation() {
+    document.querySelectorAll(".xnav a[data-pg]").forEach(function (link) {
+      if (link.classList.contains("cur")) return;
+      link.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        var message = "请返回 AstrBot 插件详情，选择对应的" + link.getAttribute("data-pg") + "页面。";
+        if (typeof toast === "function") toast(message);
+        else {
+          var output = document.getElementById("toast");
+          if (output) { output.textContent = message; output.style.display = "block"; }
+        }
+      });
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bindNavigation);
+  else bindNavigation();
+})();
+</script>
+<script>
+/* 官方约定：API 走 window.AstrBotPluginPage bridge；endpoint = 注册路由去掉 /{插件名} 前缀的短路径。 */
+const bridge = window.AstrBotPluginPage;
+let BRIDGE_READY = null;
+function bridgeReady(){
+  if (!BRIDGE_READY) BRIDGE_READY = bridge ? bridge.ready() : Promise.reject(new Error('bridge 未注入（需部署在 AstrBot WebUI 内打开）'));
+  return BRIDGE_READY;
+}
+async function apiGet(endpoint){ await bridgeReady(); return bridge.apiGet(endpoint); }
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const TIER_CN = {notice:'注意', react:'反应', lose:'失控', overload:'过载'};
+const PHASE_CN = {building:'升温期', afterglow:'余韵', cooldown:'平复期'};
+const BAND_CLS = {'同室':'same', '隔壁':'near', '同层远处':'far', '异层':'far', '不明':'unknown'};
+
+function bandHtml(band){
+  return `<span class="band ${BAND_CLS[band] || 'unknown'}">${esc(band || '不明')}</span>`;
+}
+
+function sheHtml(s){
+  if (!s) return '<span style="color:#8b949e">位置未知</span>';
+  if (s.moving){
+    return `<span class="arrow">${esc(s.from_label || '?')} ⟶ ${esc(s.to_label || '?')}</span>` +
+      `<span class="eta">（${esc(s.eta_band || '得走一阵')}）</span>`;
+  }
+  const fresh = s.fresh ? '<span class="fresh">刚到</span>' : '';
+  return `${fresh}在 <b style="color:#e6edf3">${esc(s.room_label || '未知房间')}</b>` +
+    `<span style="color:#8b949e">${esc(s.props_hint || '')}</span>`;
+}
+
+function heHtml(s){
+  if (!s || !s.room_label) return '<span style="color:#8b949e">位置未知</span>';
+  const low = (+s.confidence < 0.5) ? '<span class="lowconf">低置信</span>' : '';
+  const mv = s.moving ? '<span class="eta">（走动中）</span>' : '';
+  return `在 <b style="color:#e6edf3">${esc(s.room_label)}</b>${mv}${low}`;
+}
+
+function stateCard(st){
+  const she = st.she || {}, he = st.he || {}, b = st.body;
+  const name = (b && b.character_name) || st.character;
+  const phase = b && b.phase;
+  const badge = phase && phase !== 'building'
+    ? `<span class="badge ${esc(phase)}">${esc(PHASE_CN[phase] || phase)}${b.phase_until ? ' · ' + esc(String(b.phase_until).slice(11, 16)) : ''}</span>` : '';
+  let bodyHtml;
+  if (!b){
+    bodyHtml = '<div class="place"><span style="color:#8b949e">无身体档案（profile 不存在或未建档）——仅显示空间态</span></div>';
+  }else{
+    const topParts = (b.top_parts || []).map(p => {
+      const tier = p.tier ? `<span class="tier ${esc(p.tier)}">${esc(TIER_CN[p.tier] || p.tier)}</span>` : '';
+      const mat = p.material ? `<span class="matword">${esc(p.material)}</span>` : '';
+      return `<div class="prow"><span class="pl" title="sens ${p.sens ?? '-'}">${esc(p.label)}</span>` +
+        `<span class="pbar"><i style="width:${Math.min(100, (p.value || 0) * 100).toFixed(1)}%"></i></span>` +
+        `<span class="pv">${(p.value ?? 0).toFixed(2)}</span>${tier}${mat}</div>`;
+    }).join('');
+    const mats = (b.recent_materials || []).length
+      ? `<div class="mats"><span class="t">材质事件近况（${b.recent_materials.length}）</span>` +
+        b.recent_materials.map(m =>
+          `${esc(m.label)} <span class="matword">${esc(m.material)}</span> <span class="at">${esc(String(m.at || '').slice(11, 19))}</span>`).join('｜') + '</div>'
+      : '';
+    bodyHtml = `
+      <div class="kv">
+        <span>兴奋度 <b>${(b.arousal ?? 0).toFixed(2)}</b> / ${b.overload_threshold ?? 0.85}</span>
+        <span>耐受 <b>${(b.tolerance ?? 0).toFixed(2)}</b></span>
+        <span>今日 <b>${b.events_today ?? 0}</b> 次</span>
+        ${b.tier ? `<span>档位 <b>${esc(TIER_CN[b.tier] || b.tier)}</b></span>` : ''}
+      </div>
+      <div class="bar"><i style="width:${Math.min(100, (b.arousal ?? 0) * 100).toFixed(1)}%"></i></div>
+      <div class="parts">${topParts || '<span style="color:#8b949e;font-size:12px">暂无部位数值</span>'}</div>
+      ${mats}
+      <div class="foot">身体态更新 ${esc(String(b.updated_at || '').slice(11, 19))} UTC</div>`;
+  }
+  return `<div class="card">
+    <h2>${esc(name)} <span class="who">${esc(st.session)}</span> ${badge}</h2>
+    <div class="place"><span class="tag">她</span>${sheHtml({...she, props_hint: st.props_hint})}</div>
+    <div class="place"><span class="tag">他</span>${heHtml(he)}${bandHtml(he.band)}</div>
+    ${bodyHtml}
+  </div>`;
+}
+
+async function linksCard(links){
+  const el = document.getElementById('links-card');
+  if(!el) return;
+  if(!links){ el.style.display = 'none'; return; }
+  const rows = [];
+  rows.push(links.rainy_active
+    ? '<span class="badge" style="background:#1f6feb33;color:#58a6ff">雨天动线生效中</span>' +
+      (links.weather_city ? ' <small style="color:#8b949e">' + esc(links.weather_city) + ' · 户外兜底转室内</small>' : '')
+    : '<span class="badge" style="background:#21262d;color:#8b949e">雨天动线待命</span> <small style="color:#8b949e">天气查询后自动激活</small>');
+  rows.push((links.triggers_active || 0) > 0
+    ? '<span class="badge" style="background:#23863633;color:#3fb950">情境触发 ×' + links.triggers_active + '</span>' +
+      (links.last_trigger_hint ? ' <small style="color:#8b949e">' + esc(String(links.last_trigger_hint).slice(0, 40)) + '</small>' : '')
+    : '<span class="badge" style="background:#21262d;color:#8b949e">无活动触发</span>');
+  el.innerHTML = '<h3 style="margin:0 0 10px;font-size:14px;color:#c9d1d9">当前联动</h3>' +
+    '<div style="display:flex;flex-direction:column;gap:8px">' + rows.map(r => '<div>' + r + '</div>').join('') + '</div>';
+}
+
+/* 自定义参数速览（只读）：overview.config 键值对照——true/false 转 开/关，null 显示 —；
+   config 整体缺省（null/空对象）时提示后端版本未下发。键名以后端 _config_view 下发为准。 */
+const CONFIG_LABELS = {
+  vb_enabled: '虚拟身体层总开关',
+  vb_default_character: '默认角色',
+  vb_inject_enabled: '状态注入',
+  vb_tick_seconds: '心跳周期(秒)',
+  vb_render_max_chars: '渲染上限(字)',
+  vb_show_numbers: '显示数值',
+  vb_llm_fallback_enabled: 'LLM 兜底',
+  vb_llm_fallback_daily_limit: 'LLM 兜底日限',
+  sp_enabled: '空间层',
+  mo_enabled: '心绪编排层',
+  presence_bridge_enabled: '存在层桥接',
+  vb_tz_utc_offset: '时区偏移(UTC)',
+  sp_pc_plan_enabled: '外部主动消息适配器计划',
+  presence_layer_enabled: '统一环境状态接口',
+  presence_context_enabled: '环境背景自动注入',
+  presence_context_max_chars: '环境背景字符上限',
+  presence_repeat_seconds: '相同背景重述间隔(秒)',
+};
+function configCard(cfg){
+  const el = document.getElementById('config-card');
+  if (!el) return;
+  const head = '<h3 style="margin:0 0 10px;font-size:14px;color:#c9d1d9">自定义参数速览' +
+    '<span style="font-size:11px;color:#8b949e;font-weight:400;margin-left:8px">只读——在 AstrBot WebUI 插件配置中修改</span></h3>';
+  const entries = (cfg && typeof cfg === 'object') ? Object.entries(cfg) : [];
+  if (!entries.length){
+    el.innerHTML = head + '<div class="empty" style="padding:16px 0">后端版本未下发</div>';
+    return;
+  }
+  const rows = entries.map(([k, v]) => {
+    let val;
+    if (v === null || v === undefined) val = '<span style="color:#8b949e">—</span>';
+    else if (v === true) val = '<span style="color:#3fb950">开</span>';
+    else if (v === false) val = '<span style="color:#8b949e">关</span>';
+    else if (typeof v === 'object') val = esc(JSON.stringify(v));
+    else val = esc(String(v));
+    const known = CONFIG_LABELS[k];
+    return `<tr><td style="color:#c9d1d9">${esc(known || k)}${known ? `<span class="raw">${esc(k)}</span>` : ''}</td><td style="width:90px">${val}</td></tr>`;
+  }).join('');
+  el.innerHTML = head + '<table><tr><th>参数</th><th style="width:90px">值</th></tr>' + rows + '</table>';
+}
+
+function runtimeCard(runtime){
+  const el = document.getElementById('runtime-card');
+  if (!runtime || !Object.keys(runtime).length){ el.style.display = 'none'; return; }
+  el.style.display = '';
+  const tick = runtime.tick || {}, fallback = runtime.fallback || {}, modules = runtime.modules || {};
+  const counts = runtime.counts || {}, observation = runtime.observation || {};
+  const moduleNames = {body:'身体', space:'空间', mood:'心绪'};
+  const enabled = Object.entries(moduleNames).map(([k, label]) =>
+    esc(label) + ' ' + (modules[k] ? '<b style="color:#3fb950">开</b>' : '<span style="color:#8b949e">关</span>')).join(' · ');
+  const budget = fallback.enabled
+    ? '今日动作兜底 ' + esc(fallback.used ?? 0) + ' / ' + esc(fallback.daily_limit ?? '-') +
+      '，剩余 ' + esc(fallback.remaining ?? '-') + '，处理中 ' + esc(fallback.pending_requests ?? 0)
+    : '动作抽取兜底已关闭';
+  const presence = runtime.presence || {}, pctx = presence.context || {};
+  const providers = (presence.registered_sources || []).filter(p => p.enabled);
+  const environment = '统一感知 ' + (presence.active ? '运行中' : '未启用') +
+    ' · 来源 ' + providers.length + ' 个 · 已提供背景 ' + (pctx.injections || 0) +
+    ' 次 · 最近 ' + (pctx.last_chars || 0) + ' / ' + (pctx.max_chars || 420) + ' 字符' +
+    ' · 已过滤重复 ' + (pctx.suppressed_repeats || 0) + ' 次';
+  const warnings = [];
+  if (tick.last_error_type) warnings.push('心跳最近异常：' + tick.last_error_type);
+  if (fallback.budget_error_type) warnings.push('兜底预算保存异常：' + fallback.budget_error_type);
+  el.innerHTML = '<h3 style="margin:0 0 10px;font-size:14px;color:#c9d1d9">运行健康 ' +
+    '<span class="badge">' + (runtime.lifecycle?.stopping ? '正在停止' : '运行中') + '</span></h3>' +
+    '<div class="kv"><span>' + enabled + '</span></div>' +
+    '<div class="kv"><span>' + budget + '</span></div>' +
+    '<div class="kv"><span>' + esc(environment) + '</span></div>' +
+    '<div class="kv"><span>心跳 ' + esc(tick.cycles ?? 0) + ' 次 · 异常 ' + esc(tick.errors ?? 0) +
+    ' 次</span><span>已忽略重复消息 ' + esc(observation.duplicate_messages_ignored ?? 0) +
+    ' 条</span><span>身体 ' + esc(counts.body_sessions ?? 0) + ' / 空间 ' +
+    esc(counts.space_sessions ?? 0) + ' 个会话</span></div>' +
+    (warnings.length ? '<div style="color:#d29922">' + warnings.map(esc).join('；') + '</div>' : '');
+}
+
+let LOAD_PENDING = false, HAS_LOADED = false;
+async function load(){
+  if (LOAD_PENDING) return;
+  LOAD_PENDING = true;
+  try{
+    const data = await apiGet('page/presence/overview');
+    const states = data.states || [];
+    document.getElementById('meta').textContent =
+      `v${data.version} ｜ 庄园 ${data.manor?.rooms ?? '-'} 房 / ${data.manor?.edges ?? '-'} 边（${data.manor?.source || 'none'}）｜ ${states.length} 个会话`;
+    document.getElementById('grid').innerHTML = states.length
+      ? states.map(stateCard).join('')
+      : '<div class="empty">暂无存在层会话——白名单用户在私聊里互动后这里会出现空间 × 身体总览卡片</div>';
+    linksCard(data.links);
+    configCard(data.config);
+    runtimeCard(data.runtime);
+    HAS_LOADED = true;
+  }catch(e){
+    document.getElementById('meta').textContent = '刷新失败：' + (e.message || e) +
+      (HAS_LOADED ? '（当前卡片为上次成功快照）' : '');
+    if (!HAS_LOADED) document.getElementById('grid').innerHTML = `<div class="err">加载失败：${esc(e.message || e)}</div>`;
+  }finally{
+    LOAD_PENDING = false;
+  }
+}
+
+function toast(msg, isErr){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast' + (isErr ? ' err' : ''); t.style.display = 'block';
+  clearTimeout(t._h); t._h = setTimeout(() => t.style.display = 'none', 3400);
+}
+
+/* 四页互跳：AstrBot 插件页 iframe 沙箱（allow-scripts；静态资源解析限定在本 page 目录，
+   官方文档明确"不要依赖 .. 逃逸 Page 根目录"；bridge 亦无页面跳转 API）——
+   ../<name>/ 相对跳转不可行，点击给出一致引导。 */
+
+
+load();
+setInterval(() => { if (!document.hidden && document.getElementById('auto').checked) load(); }, 30000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && document.getElementById('auto').checked) load(); });
+</script>
+</body>
+</html>

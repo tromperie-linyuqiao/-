@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>庄园空间层 · 平面图与状态</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans SC',sans-serif;background:#0d1117;color:#c9d1d9;min-height:100vh;padding:12px;font-size:12px}
+h1{font-size:17px;color:#58a6ff;margin-bottom:4px}
+.meta{font-size:12px;color:#8b949e;margin-bottom:12px}
+.tabs{display:flex;gap:6px;margin:10px 0;flex-wrap:wrap}
+.tab{padding:5px 14px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#8b949e;cursor:pointer;font-size:12px}
+.tab.active{color:#58a6ff;border-color:#1f6feb66;background:#1f6feb22}
+button{background:#21262d;color:#58a6ff;border:1px solid #30363d;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px}
+button:hover{background:#30363d}
+button.primary{background:#1f6feb;color:#fff;border-color:#1f6feb}
+button.danger{color:#f85149}
+button.danger-armed{background:#b62324;color:#fff;border-color:#b62324}
+input,select,textarea{background:#0d1117;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:4px 7px;font-size:12px}
+input:focus{outline:1px solid #1f6feb}
+.card{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px;margin-bottom:14px}
+.card h2{font-size:13px;color:#58a6ff;margin-bottom:8px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{color:#8b949e;font-weight:500;text-align:left;padding:5px 6px;border-bottom:1px solid #21262d}
+td{padding:4px 6px;border-bottom:1px solid #21262d}
+td input,td select{width:100%}
+.rowbtn{padding:2px 8px;font-size:11px}
+.kv{font-size:12px;color:#8b949e}
+.kv b{color:#e6edf3}
+.hint{font-size:11px;color:#8b949e;margin:4px 0}
+.err{color:#f85149}
+.wrap{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start}
+#plan-wrap{position:relative;flex-shrink:0;width:100%;max-width:560px}
+svg{background:#0d1117;border:1px solid #30363d;border-radius:10px;touch-action:none;user-select:none}
+#plan{display:block;width:100%;height:auto}
+#editor{flex:1;min-width:300px}
+.toast{position:fixed;bottom:24px;right:24px;background:#1f6feb;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;display:none;box-shadow:0 4px 18px #000a}
+.toast.err{background:#b62324}
+/* 四页互跳导航条（沙箱内无法直接跳转，见脚本注） */
+.xnav{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #21262d}
+.xnav .xt{font-size:11px;color:#8b949e;margin-right:4px}
+.xnav a{font-size:12px;color:#8b949e;border:1px solid #30363d;border-radius:6px;padding:3px 10px;background:#161b22;cursor:pointer;text-decoration:none}
+.xnav a:hover{background:#21262d;color:#c9d1d9}
+.xnav a.cur{color:#58a6ff;border-color:#1f6feb66;background:#1f6feb22;cursor:default}
+/* ---- 五页统一响应式基座：卡片限宽居中 / 表格容器横滚 / 触摸目标 ≥36px ---- */
+.xnav,.meta,.tabs,.wrap,.card{max-width:960px;margin-left:auto;margin-right:auto}
+.twrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+@media (max-width:639px){
+  button:not(.rowbtn){min-height:36px}
+  .tab{min-height:36px;display:inline-flex;align-items:center}
+}
+/* 保存反馈在手机窄屏保持可读，焦点操作同样可见。 */
+.toast{max-width:calc(100vw - 32px);overflow-wrap:anywhere;z-index:1000}
+button:disabled{opacity:.6;cursor:wait}
+.xnav a:focus-visible,button:focus-visible{outline:2px solid #58a6ff;outline-offset:2px}
+@media(max-width:639px){.xnav a{min-height:36px;display:inline-flex;align-items:center}.rowbtn{min-height:32px}}
+</style>
+</head>
+<body>
+<div class="xnav"><span class="xt">存在层页面</span>
+  <a data-pg="身体">身体</a>
+  <a class="cur" data-pg="空间">空间</a>
+  <a data-pg="材质">材质</a>
+  <a data-pg="总览">总览</a>
+  <a data-pg="心绪">心绪</a>
+</div>
+<h1>庄园空间层 · 平面图编辑器</h1>
+<div class="meta" id="meta">加载中…</div>
+<div class="tabs" id="floor-tabs"></div>
+
+<div class="wrap">
+  <div id="plan-wrap">
+    <svg id="plan" viewBox="0 0 560 440" style="max-width:560px"></svg>
+    <div class="hint">拖拽房间改位置｜双击空白新增房间｜点击选中编辑</div>
+  </div>
+  <div id="editor" style="flex:1;min-width:min(100%,320px)">
+    <div class="card">
+      <h2>选中房间</h2>
+      <div id="room-panel"><span class="hint">点击平面图上的房间节点进行编辑。</span></div>
+      <button onclick="addRoom()">+ 新增房间（本层随机落点）</button>
+    </div>
+    <div class="card">
+      <h2>边（相邻关系与步行秒数）</h2>
+      <div class="twrap"><table id="edges-table"></table></div>
+      <div style="margin-top:6px"><button onclick="addEdge()">+ 新增边</button></div>
+    </div>
+    <div class="card">
+      <h2>兜底动线 default_schedule</h2>
+      <div class="twrap"><table id="sched-table"></table></div>
+      <div style="margin-top:6px"><button onclick="addSched()">+ 新增时段</button></div>
+    </div>
+    <div class="card">
+      <h2>日程映射 activity_map（关键词逗号分隔 → 房间）</h2>
+      <div class="twrap"><table id="amap-table"></table></div>
+      <div style="margin-top:6px"><button onclick="addAmap()">+ 新增映射</button></div>
+    </div>
+    <div class="card">
+      <h2>物品账本（/put /find 同源）</h2>
+      <div class="twrap"><table id="obj-table"></table></div>
+      <div style="margin-top:6px"><button onclick="addObj()">+ 新增物品</button> <button class="primary" id="obj-save-btn" onclick="saveObjects()">保存物品</button> <span id="obj-state" class="hint"></span></div>
+    </div>
+    <div class="card">
+      <h2>会话状态（只读）</h2>
+      <div id="states" class="hint">加载中…</div>
+    </div>
+    <button class="primary" id="manor-save-btn" onclick="saveManor()">保存全部并热生效</button>
+    <span id="save-state" class="hint"></span>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="/api/plugin/page/bridge-sdk.js"></script>
+<script>
+/* Cross-page selection remains in the authenticated AstrBot plugin detail UI. */
+(function () {
+  function bindNavigation() {
+    document.querySelectorAll(".xnav a[data-pg]").forEach(function (link) {
+      if (link.classList.contains("cur")) return;
+      link.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        var message = "请返回 AstrBot 插件详情，选择对应的" + link.getAttribute("data-pg") + "页面。";
+        if (typeof toast === "function") toast(message);
+        else {
+          var output = document.getElementById("toast");
+          if (output) { output.textContent = message; output.style.display = "block"; }
+        }
+      });
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bindNavigation);
+  else bindNavigation();
+})();
+</script>
+<script>
+const bridge = window.AstrBotPluginPage;
+let READY = null, M = null, SEL = -1, FLOOR = 'L1', DRAG = null;
+function ready(){ if (!READY) READY = bridge.ready(); return READY; }
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const S = 22, OX = 20, OY = 20;   // 米→像素比例与边距
+function toast(m, err){
+  const t = document.getElementById('toast');
+  t.textContent = m; t.className = 'toast' + (err ? ' err' : ''); t.style.display = 'block';
+  clearTimeout(t._h); t._h = setTimeout(() => t.style.display = 'none', 3200);
+}
+function toPx(x, y){ return [(x - viewMin().x) * S + OX, (y - viewMin().y) * S + OY]; }
+function viewMin(){
+  // 与 renderPlan 的自适应 viewBox 对齐：当前层房间最小包围盒 -1m
+  const rooms = floorRooms();
+  if (!rooms.length) return {x: 0, y: 0};
+  const xs = rooms.flatMap(r => [r.center[0] - r.size[0]/2]);
+  const ys = rooms.flatMap(r => [r.center[1] - r.size[1]/2]);
+  return {x: Math.min(...xs) - 1, y: Math.min(...ys) - 1};
+}
+function toM(px, py){ return [(px - OX) / S + viewMin().x, (py - OY) / S + viewMin().y]; }
+function floorRooms(){ return (M.rooms || []).filter(r => r.floor === FLOOR); }
+function roomById(id){ return (M.rooms || []).find(r => r.id === id); }
+
+function renderTabs(){
+  document.getElementById('floor-tabs').innerHTML = (M.floors || []).map(f =>
+    `<div class="tab ${f.id === FLOOR ? 'active' : ''}" onclick="setFloor('${esc(f.id)}')">${esc(f.name)}</div>`).join('');
+}
+function setFloor(f){ FLOOR = f; SEL = -1; renderAll(); }
+
+function renderPlan(){
+  const svg = document.getElementById('plan');
+  if (!svg || !M) return;
+  svg.innerHTML = '';
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (t, a, p) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); (p || svg).appendChild(e); return e; };
+  // viewBox 按当前层房间范围自适应（前科：固定 560x440 时外场门房 y=449 画到画布外）
+  const rooms = floorRooms();
+  if (!rooms.length){ el('text', {x:20, y:30, fill:'#484f58', 'font-size':13}).textContent = '本层无房间'; return; }
+  const xs = rooms.flatMap(r => [r.center[0] - r.size[0]/2, r.center[0] + r.size[0]/2]);
+  const ys = rooms.flatMap(r => [r.center[1] - r.size[1]/2, r.center[1] + r.size[1]/2]);
+  const minX = Math.min(...xs) - 1, minY = Math.min(...ys) - 1;
+  const vw = (Math.max(...xs) + 1 - minX) * S + OX, vh = (Math.max(...ys) + 1 - minY) * S + OY;
+  svg.setAttribute('viewBox', `0 0 ${Math.max(300, Math.ceil(vw))} ${Math.max(240, Math.ceil(vh))}`);
+  el('rect', {x:0, y:0, width:'100%', height:'100%', fill:'#0d1117'});
+  const idx = Object.fromEntries((M.rooms || []).map((r, i) => [r.id, i]));
+  // 边连线（本层房间间画线；跨层楼梯画到楼梯口——优先读 floors[].stair_at，旧数据回退包围盒推导）
+  const flDef = (M.floors || []).find(f => f.id === FLOOR);
+  const hasExplicitStair = flDef && Array.isArray(flDef.stair_at) && flDef.stair_at.length === 2;
+  const stairsPt = hasExplicitStair ? toPx(flDef.stair_at[0], flDef.stair_at[1]) : toPx(minX + 1.5, minY + 1.2);
+  let hasStairs = false;
+  (M.edges || []).forEach(e => {
+    const ra = roomById(e.a), rb = roomById(e.b);
+    const aIsRoom = ra && ra.floor === FLOOR, bIsRoom = rb && rb.floor === FLOOR;
+    if (aIsRoom && bIsRoom){
+      const pa = toPx(ra.center[0], ra.center[1]), pb2 = toPx(rb.center[0], rb.center[1]);
+      el('line', {x1:pa[0], y1:pa[1], x2:pb2[0], y2:pb2[1], stroke:'#3fb95066', 'stroke-width':1.4});
+      el('text', {x:(pa[0]+pb2[0])/2 + 4, y:(pa[1]+pb2[1])/2 - 3, fill:'#3fb950', 'font-size':8, 'text-anchor':'middle'}).textContent = e.seconds + 's';
+    } else if (aIsRoom || bIsRoom){
+      hasStairs = true;
+      const rr = aIsRoom ? ra : rb;
+      const pa = toPx(rr.center[0], rr.center[1]);
+      el('line', {x1:pa[0], y1:pa[1], x2:stairsPt[0], y2:stairsPt[1], stroke:'#d2992266', 'stroke-width':1.2, 'stroke-dasharray':'4 3'});
+    }
+  });
+  if (hasStairs){
+    el('text', {x:stairsPt[0] + 6, y:stairsPt[1] + 4, fill:'#d29922', 'font-size':11}).textContent = '⇕ 楼梯';
+  }
+  // 房间矩形
+  floorRooms().forEach((r, k) => {
+    const i = idx[r.id];
+    const [cx, cy] = toPx(r.center[0], r.center[1]);
+    const w = (r.size[0] || 2) * S, h = (r.size[1] || 2) * S;
+    const sel = i === SEL;
+    const rect = el('rect', {x:cx-w/2, y:cy-h/2, width:w, height:h, rx:3,
+      fill: sel ? '#1f6feb33' : '#21262d88', stroke: sel ? '#58a6ff' : '#30363d', 'stroke-width': sel ? 1.8 : 1,
+      style:'cursor:move'});
+    rect.addEventListener('click', () => { SEL = i; renderAll(); });
+    rect.addEventListener('pointerdown', (e) => {
+      SEL = i;
+      DRAG = {i, sx:e.clientX, sy:e.clientY, ox:r.center[0], oy:r.center[1], moved:false};
+      try { svg.setPointerCapture(e.pointerId); } catch(err) {}
+      renderAll();
+      e.preventDefault();
+      e.stopPropagation();
+    });
+    const t = el('text', {x:cx, y:cy+4, 'text-anchor':'middle', 'font-size':11, fill: sel ? '#58a6ff' : '#c9d1d9',
+      style:'cursor:move;pointer-events:none'});
+    t.textContent = r.label || r.id;
+  });
+  // 一次性监听（on- 赋值防累积——前科：addEventListener 每次渲染叠加，双击一次新增 N 个房间）
+  svg.ondblclick = (e) => {
+    if (e.target.tagName === 'rect' || e.target.tagName === 'text') return;
+    const r = svg.getBoundingClientRect();
+    const [mx, my] = toM((e.clientX - r.left) / r.width * svg.viewBox.baseVal.width,
+                         (e.clientY - r.top) / r.height * svg.viewBox.baseVal.height);
+    addRoomAt(Math.max(1, Math.round(mx)), Math.max(1, Math.round(my)));
+  };
+}
+
+document.addEventListener('pointermove', (e) => {
+  if (!DRAG || !M) return;
+  /* SVG 响应式缩放补偿：屏幕像素 → viewBox 单位 → 米（0.29.1 平面图 width:100% 后保持 1:1 拖拽手感） */
+  const svgEl = document.getElementById('plan');
+  const rect = svgEl.getBoundingClientRect();
+  const vw = svgEl.viewBox && svgEl.viewBox.baseVal ? svgEl.viewBox.baseVal.width : 560;
+  const scale = (rect.width && vw) ? rect.width / vw : 1;
+  const dxm = (e.clientX - DRAG.sx) / scale / S, dym = (e.clientY - DRAG.sy) / scale / S;
+  if (Math.abs(dxm) + Math.abs(dym) > 0.15) DRAG.moved = true;
+  const r = M.rooms[DRAG.i];
+  r.center = [Math.max(1, Math.round((DRAG.ox + dxm) * 10) / 10), Math.max(1, Math.round((DRAG.oy + dym) * 10) / 10)];
+  renderPlan();
+});
+document.addEventListener('pointerup', () => {
+  if (DRAG && DRAG.moved){ renderEditor(); }
+  DRAG = null;
+});
+
+/* ---- 场景互动词（后端契约：rooms[].scene_words = [{word, gain(0-0.5), note?}]，缺省视 []；
+   文本格式 词:增益,词:增益——解析/序列化与家具 props 同风格；校验失败 toast 不保存） ---- */
+function sceneWordsStr(r){
+  return (r.scene_words || []).map(w => `${String(w.word || '')}:${(+w.gain || 0).toFixed(2)}`).join(',');
+}
+function parseSceneWords(s, prev){
+  const old = new Map((prev || []).map(w => [String(w.word || ''), w]));
+  const out = [];
+  for (const part of String(s || '').split(/[,，]/).map(x => x.trim()).filter(Boolean)){
+    const seg = part.split(/[:：]/).map(x => x.trim());
+    if (seg.length !== 2 || !seg[0] || !/^\d+(\.\d{1,2})?$/.test(seg[1])) return null;
+    const g = parseFloat(seg[1]);
+    if (!(g >= 0 && g <= 0.5)) return null;
+    const keep = old.get(seg[0]);   // 同词保留既有 note，避免编辑时静默丢失
+    out.push(keep && keep.note ? {word: seg[0], gain: g, note: keep.note} : {word: seg[0], gain: g});
+  }
+  return out;
+}
+
+function renderEditor(){
+  const panel = document.getElementById('room-panel');
+  const p = SEL >= 0 && M.rooms[SEL];
+  if (!p){ panel.innerHTML = '<span class="hint">点击房间进行编辑。</span>'; }
+  else{
+    panel.innerHTML = `
+      <table>
+        <tr><td style="width:70px">id</td><td><input value="${esc(p.id)}" readonly></td></tr>
+        <tr><td>名称</td><td><input data-r="label" value="${esc(p.label)}"></td></tr>
+        <tr><td>楼层</td><td><select data-r="floor">${(M.floors||[]).map(f => `<option value="${esc(f.id)}" ${f.id===p.floor?'selected':''}>${esc(f.name)}</option>`).join('')}</select></td></tr>
+        <tr><td>尺寸</td><td><input style="width:70px" value="${esc(p.size[0])}" data-r="sw"> × <input style="width:70px" value="${esc(p.size[1])}" data-r="sh"> 米</td></tr>
+        <tr><td>别名</td><td><input data-r="aliases" value="${esc((p.aliases||[]).join(','))}"></td></tr>
+        <tr><td>氛围</td><td><textarea data-r="ambiance" rows="2" style="width:100%">${esc(p.ambiance||'')}</textarea></td></tr>
+        <tr><td>家具</td><td><input data-r="props" value="${esc((p.props||[]).join(','))}"></td></tr>
+      <tr><td>场景词</td><td><input data-r="scene_words" value="${esc(sceneWordsStr(p))}" placeholder="词:增益,词:增益（增益 0-0.5 两位小数，如 淋浴:0.20）"></td></tr>
+      </table>
+      <p class="hint">删房间前先清掉它的边、动线与映射引用（保存时会拦截）。</p>`;
+    panel.querySelectorAll('[data-r]').forEach(inp => inp.addEventListener('change', () => {
+      const k = inp.dataset.r;
+      if (k === 'label') p.label = inp.value.trim() || p.id;
+      else if (k === 'floor') p.floor = inp.value;
+      else if (k === 'sw') p.size[0] = parseFloat(inp.value) || 2;
+      else if (k === 'sh') p.size[1] = parseFloat(inp.value) || 2;
+      else if (k === 'aliases') p.aliases = inp.value.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+      else if (k === 'ambiance') p.ambiance = inp.value.trim();
+      else if (k === 'props') p.props = inp.value.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+      else if (k === 'scene_words'){
+        // 场景互动词（0.27.1：[{word,gain}]，观察器/触摸命中即事件增益）：文本格式 词:增益,词:增益
+        const parsed = parseSceneWords(inp.value, p.scene_words);
+        if (parsed === null){
+          toast('场景词格式非法：应为 词:增益,词:增益（增益 0-0.5 两位小数）——本次输入未保存', true);
+          inp.value = sceneWordsStr(p);
+        } else p.scene_words = parsed;
+      }
+      renderPlan();
+    }));
+  }
+  renderEdges(); renderSched(); renderAmap();
+}
+
+function renderEdges(){
+  const tb = document.getElementById('edges-table');
+  tb.innerHTML = '<tr><th>A</th><th>B</th><th style="width:80px">秒</th><th style="width:44px"></th></tr>';
+  (M.edges || []).forEach((e, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${esc(roomById(e.a)?.label || e.a)}</td><td>${esc(roomById(e.b)?.label || e.b)}</td>
+      <td><input value="${esc(e.seconds)}" data-ei="${i}"></td>
+      <td><button class="rowbtn danger" data-del-edge="${i}">删</button></td>`;
+    tr.querySelector('input').addEventListener('change', (ev) => { e.seconds = parseInt(ev.target.value, 10) || 0; renderPlan(); });
+    tb.appendChild(tr);
+  });
+}
+document.addEventListener('click', (e) => {
+  const del = e.target.closest('[data-del-edge]');
+  if (del){ M.edges.splice(+del.dataset.delEdge, 1); renderEdges(); renderPlan(); }
+});
+function addEdge(){
+  const ids = (M.rooms || []).map(r => r.id);
+  M.edges.push({a: ids[0] || '', b: ids[1] || '', seconds: 8});
+  renderEdges(); renderPlan();
+}
+function renderSched(){
+  const tb = document.getElementById('sched-table');
+  tb.innerHTML = '<tr><th style="width:70px">从(时)</th><th style="width:70px">到(时)</th><th>房间</th><th style="width:44px"></th></tr>';
+  (M.default_schedule || []).forEach((s, i) => {
+    const tr = document.createElement('tr');
+    const opts = (M.rooms || []).map(r => `<option value="${esc(r.id)}" ${r.id===s.room?'selected':''}>${esc(r.label)}</option>`).join('');
+    tr.innerHTML = `<td><input value="${esc(s.from_h)}" data-si="${i}" data-sk="from_h"></td>
+      <td><input value="${esc(s.to_h)}" data-si="${i}" data-sk="to_h"></td>
+      <td><select data-si="${i}" data-sk="room">${opts}</select></td>
+      <td><button class="rowbtn danger" data-del-sched="${i}">删</button></td>`;
+    tr.querySelectorAll('[data-sk]').forEach(inp => inp.addEventListener('change', () => {
+      const k = inp.dataset.sk;
+      s[k] = k === 'room' ? inp.value : (parseInt(inp.value, 10) || 0);
+      renderSched();
+    }));
+    tb.appendChild(tr);
+  });
+}
+document.addEventListener('click', (e) => {
+  const del = e.target.closest('[data-del-sched]');
+  if (del){ M.default_schedule.splice(+del.dataset.delSched, 1); renderSched(); }
+});
+function addSched(){ M.default_schedule.push({from_h: 8, to_h: 12, room: (M.rooms[0]||{}).id}); renderSched(); }
+function renderAmap(){
+  const tb = document.getElementById('amap-table');
+  tb.innerHTML = '<tr><th>关键词（逗号分隔）</th><th>房间</th><th style="width:44px"></th></tr>';
+  (M.activity_map || []).forEach((m, i) => {
+    const tr = document.createElement('tr');
+    const opts = (M.rooms || []).map(r => `<option value="${esc(r.id)}" ${r.id===m.room?'selected':''}>${esc(r.label)}</option>`).join('');
+    tr.innerHTML = `<td><input value="${esc((m.match||[]).join(','))}" data-mi="${i}"></td>
+      <td><select data-mi="${i}">${opts}</select></td>
+      <td><button class="rowbtn danger" data-del-amap="${i}">删</button></td>`;
+    tr.querySelector('input').addEventListener('change', (ev) => { m.match = ev.target.value.split(/[,，]/).map(x => x.trim()).filter(Boolean); renderAmap(); });
+    tr.querySelector('select').addEventListener('change', (ev) => { m.room = ev.target.value; });
+    tb.appendChild(tr);
+  });
+}
+document.addEventListener('click', (e) => {
+  const del = e.target.closest('[data-del-amap]');
+  if (del){ M.activity_map.splice(+del.dataset.delAmap, 1); renderAmap(); }
+});
+function addAmap(){ M.activity_map.push({match: [], room: (M.rooms[0]||{}).id}); renderAmap(); }
+function addRoomAt(x, y){
+  let n = M.rooms.length + 1;
+  while (M.rooms.some(r => r.id === `room-${n}`)) n++;
+  M.rooms.push({id:`room-${n}`, floor:FLOOR, label:`新房间${n}`, aliases:[], center:[x, y], size:[2.5, 2], ambiance:'', props:[], scene_words:[]});
+  SEL = M.rooms.length - 1;
+  renderAll();
+  toast('已新增房间，填写参数后保存');
+}
+function addRoom(){ addRoomAt(5 + Math.random() * 8, 3 + Math.random() * 6); }
+
+async function load(){
+  try{
+    await ready();
+    M = await bridge.apiGet('page/manor/manor');
+    M.rooms = M.rooms || []; M.edges = M.edges || [];
+    M.rooms.forEach(r => { if (!Array.isArray(r.scene_words)) r.scene_words = []; });
+    M.default_schedule = M.default_schedule || []; M.activity_map = M.activity_map || [];
+    M.floors = M.floors && M.floors.length ? M.floors : [{id: 'L1', name: '一层'}];
+    document.getElementById('meta').textContent = `房间 ${M.rooms.length}｜边 ${M.edges.length}｜动线 ${M.default_schedule.length}｜映射 ${M.activity_map.length}`;
+    renderTabs(); renderAll();
+    await loadObjectsUI();
+    const ov = await bridge.apiGet('page/manor/overview');
+    const states = ov.states || [];
+    document.getElementById('states').innerHTML = states.length
+      ? states.map(s => `<div class="kv"><b>${esc(s.session)}</b>｜她：<b>${esc((s.she||{}).room || '?')}</b>｜他：<b>${esc((s.he||{}).room || '?')}</b>｜移动 ${( (s.events_today||{}).moves)||0} 次</div>`).join('')
+      : '<span class="hint">暂无会话状态</span>';
+  }catch(e){
+    /* 端审修复：除 toast 外把 meta 位留成持久错误——原 toast 3.2 秒即逝，加载失败后页面
+       只剩空白编辑器无解释 */
+    document.getElementById('meta').textContent = '加载失败：' + (e.message || e) + '（刷新重试；若持续失败查看 AstrBot 日志）';
+    toast('加载失败: ' + (e.message || e), true);
+  }
+}
+
+function renderAll(){ renderTabs(); renderPlan(); renderEditor(); }
+
+/* 保存整个请求期间锁住按钮，慢请求不允许第二次提交覆盖。 */
+function debounceSave(btn){
+  if (!btn || btn.disabled) return false;
+  btn.disabled = true;
+  return true;
+}
+
+async function saveManor(){
+  if (!debounceSave(document.getElementById('manor-save-btn'))) return;
+  const st = document.getElementById('save-state');
+  st.textContent = '保存中…';
+  try{
+    const payload = {...M, rooms: M.rooms.map(({viz, ...p}) => p)};
+    await bridge.apiPost('page/manor/manor/save', payload);
+    st.textContent = '已保存并热生效 ✓';
+    toast('庄园结构已保存');
+    await load();
+  }catch(e){
+    st.textContent = '保存失败：' + (e.message || e) + '（编辑内容已保留）';
+    toast('保存失败: ' + (e.message || e), true);
+  }finally{
+    document.getElementById('manor-save-btn').disabled = false;
+  }
+}
+
+async function resetState(session){
+  try{
+    await bridge.apiPost('page/manor/state/reset', {session});
+    toast('已重置'); load();
+  }catch(e){ toast('重置失败: ' + (e.message || e), true); }
+}
+
+/* ---- 物品账本 ---- */
+let OBJS = [];
+async function loadObjectsUI(){
+  try{
+    const data = await bridge.apiGet('page/manor/objects');
+    OBJS = data.items || [];
+    renderObjects();
+  }catch(e){
+    document.getElementById('obj-table').innerHTML = '<tr><td class="err">加载失败</td></tr>';
+  }
+}
+function renderObjects(){
+  const tb = document.getElementById('obj-table');
+  if (!tb) return;
+  tb.innerHTML = '<tr><th>物品</th><th>房间</th><th style="width:44px"></th></tr>';
+  if (!OBJS.length){ tb.innerHTML += '<tr><td colspan="3" class="hint">空——用 /put 或此处添加</td></tr>'; return; }
+  OBJS.forEach((o, i) => {
+    const tr = document.createElement('tr');
+    const opts = (M.rooms || []).map(r => `<option value="${esc(r.id)}" ${r.id===o.room?'selected':''}>${esc(r.label)}</option>`).join('');
+    tr.innerHTML = `<td><input value="${esc(o.label || o.id)}" data-oi="${i}" data-ok="label"></td>
+      <td><select data-oi="${i}" data-ok="room">${opts}</select></td>
+      <td><button class="rowbtn danger" data-del-obj="${i}">删</button></td>`;
+    tr.querySelector('input').addEventListener('change', (ev) => { o.label = ev.target.value.trim() || o.id; });
+    tr.querySelector('select').addEventListener('change', (ev) => { o.room = ev.target.value; });
+    tb.appendChild(tr);
+  });
+}
+document.addEventListener('click', async (e) => {
+  const del = e.target.closest('[data-del-obj]');
+  if (del){ OBJS.splice(+del.dataset.delObj, 1); renderObjects(); }
+});
+function addObj(){
+  let n = OBJS.length + 1;
+  while (OBJS.some(o => o.id === `item-${n}`)) n++;
+  OBJS.push({id: `item-${n}`, label: `新物品${n}`, room: (M.rooms[0]||{}).id, note: ''});
+  renderObjects();
+}
+async function saveObjects(){
+  if (!debounceSave(document.getElementById('obj-save-btn'))) return;
+  const st = document.getElementById('obj-state');
+  st.textContent = '保存中…';
+  try{
+    await bridge.apiPost('page/manor/objects/save', {items: OBJS});
+    st.textContent = '已保存 ✓';
+    toast('物品账本已保存');
+  }catch(e){
+    st.textContent = '保存失败：' + (e.message || e) + '（编辑内容已保留）';
+    toast('保存失败: ' + (e.message || e), true);
+  }finally{
+    document.getElementById('obj-save-btn').disabled = false;
+  }
+}
+
+/* 四页互跳：AstrBot 插件页 iframe 沙箱（allow-scripts；静态资源解析限定在本 page 目录，
+   官方文档明确"不要依赖 .. 逃逸 Page 根目录"；bridge 亦无页面跳转 API）——
+   ../<name>/ 相对跳转不可行，点击给出一致引导。 */
+
+
+load();
+</script>
+</body>
+</html>

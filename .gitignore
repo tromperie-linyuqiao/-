@@ -1,24 +1,71 @@
-# Runtime and local-only material; this repository currently contains documents only.
+# Python / test caches
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Local environments and build outputs
 .venv/
 venv/
+env/
+node_modules/
+build/
+dist/
+*.egg-info/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Credentials and local deployment settings
 .env
 .env.*
 !.env.example
-*.log
-*.sqlite
-*.sqlite3
-*.db
+secrets/
+credentials/
 *.pem
 *.key
 *.p12
 *.pfx
 *.jks
 *.keystore
-node_modules/
-dist/
-build/
-.DS_Store
-Thumbs.db
+id_rsa
+id_ed25519
+
+# Runtime state belongs in AstrBot's plugin-data directory, never in a release.
+plugin_data/
+runtime/
+state/
+logs/
+*.log
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.bak
+*.tmp
+
+# Keep source templates in data/ and examples/ tracked. Do not ignore *.json.
+
+# Local archives, signing profiles and diagnostic dumps
+*.p7b
+*.kdbx
+*.mobileprovision
+*.pid
+*.hprof
+*.dmp
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.rar
+*.apk
+*.aab

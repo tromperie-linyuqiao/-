@@ -1,0 +1,2228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>虚拟身体 · 状态总览</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans SC',sans-serif;background:#0d1117;color:#c9d1d9;min-height:100vh;padding:12px;font-size:12px}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px}
+.top h1{font-size:17px;color:#58a6ff}
+.top .meta{font-size:12px;color:#8b949e}
+.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.tab{padding:8px 18px;border:1px solid #30363d;border-radius:8px;background:#161b22;color:#8b949e;cursor:pointer;font-size:13px}
+.tab.active{color:#58a6ff;border-color:#1f6feb66;background:#1f6feb22}
+button{background:#21262d;color:#58a6ff;border:1px solid #30363d;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:13px}
+button:hover{background:#30363d}
+button.danger{color:#f85149}
+button.danger-armed{background:#b62324;color:#fff;border-color:#b62324}
+button.primary{background:#1f6feb;color:#fff;border-color:#1f6feb}
+button.primary:hover{background:#388bfd}
+input,select{background:#0d1117;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:5px 8px;font-size:12px}
+input:focus{outline:1px solid #1f6feb}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,380px),1fr));gap:16px}
+.card{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:16px}
+.card h2{font-size:13px;color:#e6edf3;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.badge{font-size:11px;padding:2px 8px;border-radius:10px;background:#1f6feb33;color:#58a6ff;border:1px solid #1f6feb55}
+.badge.afterglow{color:#d29922;border-color:#d2992255;background:#d2992222}
+.badge.cooldown{color:#8b949e;border-color:#30363d;background:#21262d}
+.kv{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12px;color:#8b949e;margin-bottom:12px}
+.kv b{color:#e6edf3;font-weight:600}
+.bar{height:8px;background:#21262d;border-radius:4px;overflow:hidden;margin-bottom:6px}
+.bar>i{display:block;height:100%;background:linear-gradient(90deg,#1f6feb,#d29922,#f85149);border-radius:4px;transition:width .4s}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{color:#8b949e;font-weight:500;text-align:left;padding:6px 8px;border-bottom:1px solid #21262d}
+td{padding:6px 8px;border-bottom:1px solid #21262d;color:#c9d1d9}
+td.num{font-variant-numeric:tabular-nums}
+td input{width:100%}
+.up{color:#3fb950}.down{color:#f85149}.flat{color:#8b949e}
+.cooling{color:#d29922}
+.empty{color:#8b949e;text-align:center;padding:40px 0;font-size:13px}
+.err{color:#f85149;font-size:13px;padding:20px;text-align:center}
+.panel{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:16px;margin-bottom:16px}
+.panel h3{font-size:13px;color:#58a6ff;margin:14px 0 8px}
+.panel h3:first-child{margin-top:0}
+.rowbtn{padding:2px 8px;font-size:11px}
+.toast{position:fixed;bottom:24px;right:24px;background:#1f6feb;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;display:none;box-shadow:0 4px 20px #0008}
+.toast.err{background:#b62324}
+.hint{font-size:11px;color:#8b949e;margin:6px 0}
+.w120{width:120px}.w80{width:80px}
+/* 四页互跳导航条（沙箱内无法直接跳转，见脚本注） */
+.xnav{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #21262d}
+.xnav .xt{font-size:11px;color:#8b949e;margin-right:4px}
+.xnav a{font-size:12px;color:#8b949e;border:1px solid #30363d;border-radius:6px;padding:3px 10px;background:#161b22;cursor:pointer;text-decoration:none}
+.xnav a:hover{background:#21262d;color:#c9d1d9}
+.xnav a.cur{color:#58a6ff;border-color:#1f6feb66;background:#1f6feb22;cursor:default}
+/* ---- 五页统一响应式基座：卡片限宽居中 / 表格容器横滚 / 小屏减列 / 触摸目标 ≥36px ---- */
+.xnav,.top,.tabs,.grid,.panel{max-width:960px;margin-left:auto;margin-right:auto}
+.twrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+#radiate-preview{overflow-x:auto}
+#link-map,#body-map{aspect-ratio:200/460}   /* viewBox 固定 200×460：height:auto 之外的双保险 */
+.hide-s{display:table-cell}
+.only-s{display:none}
+.only-s-hint{display:none}
+@media (max-width:639px){
+  .hide-s{display:none}         /* 部位表 id/半衰/别名 三列收进「详情」弹层 */
+  .only-s{display:table-cell}
+  .only-s-hint{display:block}
+  button:not(.rowbtn){min-height:36px}
+  .tab{min-height:36px;display:inline-flex;align-items:center}
+}
+/* 保存反馈在手机窄屏保持可读，焦点操作同样可见。 */
+.toast{max-width:calc(100vw - 32px);overflow-wrap:anywhere;z-index:1000}
+button:disabled{opacity:.6;cursor:wait}
+.xnav a:focus-visible,button:focus-visible{outline:2px solid #58a6ff;outline-offset:2px}
+@media(max-width:639px){.xnav a{min-height:36px;display:inline-flex;align-items:center}.rowbtn{min-height:32px}}
+</style>
+</head>
+<body>
+<div class="xnav"><span class="xt">存在层页面</span>
+  <a class="cur" data-pg="身体">身体</a>
+  <a data-pg="空间">空间</a>
+  <a data-pg="材质">材质</a>
+  <a data-pg="总览">总览</a>
+  <a data-pg="心绪">心绪</a>
+</div>
+<div class="top">
+  <div>
+    <h1>虚拟身体 · 状态总览</h1>
+    <div class="meta" id="meta">加载中…</div>
+  </div>
+  <div>
+    <button onclick="load()">刷新</button>
+    <label style="font-size:12px;color:#8b949e;margin-left:8px"><input type="checkbox" id="auto" checked> 30s 自动刷新</label>
+  </div>
+</div>
+<div class="tabs">
+  <div class="tab" data-tab="overview" onclick="switchTab('overview')">总览</div>
+  <div class="tab active" data-tab="parts" onclick="switchTab('parts')">部位</div>
+  <div class="tab" data-tab="link" onclick="switchTab('link')">联动</div>
+  <div class="tab" data-tab="params" onclick="switchTab('params')">参数</div>
+  <div class="tab" data-tab="doc" onclick="switchTab('doc')">说明</div>
+</div>
+
+<div id="view-overview" style="display:none">
+  <div class="grid" id="grid"><div class="empty">加载中…</div></div>
+</div>
+
+<div id="view-parts" class="panel">
+    <!-- 0.28.1 快速添加（推荐）：输中文名一步完成，不进下面的表格找格子 -->
+    <div style="border:1px solid #1f6feb66;border-radius:10px;padding:14px 16px;margin-bottom:16px;background:#161b22">
+      <h3 style="margin-top:0;color:#58a6ff">快速添加（推荐）</h3>
+      <p class="hint" style="margin:0 0 10px">输中文名一步完成——id、参数、落点全自动，点添加直接保存生效。</p>
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        <div style="flex:1;min-width:280px;border:1px solid #30363d;border-radius:8px;padding:10px">
+          <div style="font-size:12px;color:#e6edf3;margin-bottom:6px"><b>加部位</b>（如"后腰"）</div>
+          <input id="qa-part-name" placeholder="部位名（中文直接输入）" style="width:100%;font-size:14px;padding:8px">
+          <details style="margin-top:6px">
+            <summary style="font-size:11px;color:#8b949e;cursor:pointer">可选：别名 / 敏感度 / 半衰</summary>
+            <div class="hint" style="margin:6px 0">别名（逗号分隔，默认＝部位名）：<input id="qa-alias" style="width:100%"></div>
+            <div class="hint" style="margin:6px 0">敏感度：<input type="range" id="qa-sens" min="1" max="10" step="1" value="5" oninput="document.getElementById('qa-sens-val').textContent=this.value+'·'+sensName(this.value)" style="vertical-align:middle">
+              <span id="qa-sens-val" style="color:#8b949e">5·略敏</span>（1 麻木-10 极敏感）</div>
+            <div class="hint" style="margin:6px 0">半衰秒（无刺激时数值消退一半的时长，默认 1200）：<input id="qa-halflife" value="1200" style="width:80px"></div>
+          </details>
+          <button class="primary" style="margin-top:8px;padding:8px 18px" onclick="quickAddPart(this)">添加部位</button>
+          <span id="qa-part-state" class="hint"></span>
+        </div>
+        <div style="flex:1;min-width:280px;border:1px solid #30363d;border-radius:8px;padding:10px">
+          <div style="font-size:12px;color:#e6edf3;margin-bottom:6px"><b>加动作词</b>（聊天里认得的动作，如"薅""rua"）</div>
+          <input id="qa-word" placeholder="动作词" style="width:100%;font-size:14px;padding:8px">
+          <div class="hint" style="margin:6px 0">强度：<input type="range" id="qa-strength" min="0.05" max="1" step="0.05" value="0.5" oninput="document.getElementById('qa-strength-val').textContent=this.value" style="vertical-align:middle">
+            <span id="qa-strength-val" style="color:#8b949e">0.5</span>（0-1，越大反应越强）</div>
+          <div class="hint" style="margin:6px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <label>方式
+              <select id="qa-word-method">
+                <option value="">自动（按词判定）</option>
+                <option value="stroke">抚摸</option><option value="press">按压</option>
+                <option value="rub">揉搓</option><option value="tap">拍打</option><option value="blow">吹气</option>
+              </select></label>
+            <label>类别
+              <select id="qa-word-type">
+                <option value="touch">普通触碰（默认）</option><option value="pain">痛感</option>
+                <option value="temp">温度</option><option value="air">气流</option><option value="constrain">束缚</option>
+              </select></label>
+            <label>冷却秒
+              <input id="qa-word-cooldown" value="0" style="width:52px" title="同一词冷却内反复命中，增益减半（0=不冷却）"></label>
+          </div>
+          <details style="margin-top:6px">
+            <summary style="font-size:11px;color:#8b949e;cursor:pointer">高级：频率 / 速度 / 深度 / 温度（配材质层用，勾选才生效）</summary>
+            <div class="hint" style="margin:5px 0"><label><input type="checkbox" id="qa-p-freq-on"> 频率 Hz</label>
+              <input type="range" id="qa-p-freq" min="0" max="500" step="5" value="20" oninput="document.getElementById('qa-p-freq-val').textContent=this.value" style="width:110px;vertical-align:middle">
+              <span id="qa-p-freq-val" style="color:#8b949e">20</span>（揉搓 5-50 / 拍打 100-300 为神经响应带）</div>
+            <div class="hint" style="margin:5px 0"><label><input type="checkbox" id="qa-p-speed-on"> 速度 cm/s</label>
+              <input type="range" id="qa-p-speed" min="0.5" max="80" step="0.5" value="5" oninput="document.getElementById('qa-p-speed-val').textContent=this.value" style="width:110px;vertical-align:middle">
+              <span id="qa-p-speed-val" style="color:#8b949e">5</span>（抚摸 1-10 为 CT 纤维最优窗）</div>
+            <div class="hint" style="margin:5px 0"><label><input type="checkbox" id="qa-p-depth-on"> 压深</label>
+              <input type="range" id="qa-p-depth" min="0" max="1" step="0.05" value="0.5" oninput="document.getElementById('qa-p-depth-val').textContent=this.value" style="width:110px;vertical-align:middle">
+              <span id="qa-p-depth-val" style="color:#8b949e">0.5</span>（按压方式用，0=轻贴 1=压实）</div>
+            <div class="hint" style="margin:5px 0"><label><input type="checkbox" id="qa-p-temp-on"> 温度 °C</label>
+              <input type="range" id="qa-p-temp" min="0" max="60" step="1" value="32" oninput="document.getElementById('qa-p-temp-val').textContent=this.value" style="width:110px;vertical-align:middle">
+              <span id="qa-p-temp-val" style="color:#8b949e">32</span>（吹气/温度类，32°C 肤温最适）</div>
+          </details>
+          <button class="primary" style="margin-top:8px;padding:8px 18px" onclick="quickAddWord(this)">添加动作词</button>
+          <span id="qa-word-state" class="hint"></span>
+        </div>
+      </div>
+    </div>
+
+    <h3>编辑对象（选角色 → 改内容 → 保存）</h3>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <select id="edit-char" onchange="loadEditor()"></select>
+      <span class="hint">保存写入 plugin_data/profiles/&lt;id&gt;.json 覆盖层并热生效（旧文件自动备份 .bak）。<b style="color:#d29922">删除或改名部位会清掉该部位的已有数值</b>；敏感部位请自行在此新增——框架不预设、不做过滤。</span>
+      <button class="primary" onclick="saveProfile(this)">保存并热生效</button>
+      <button onclick="exportProfile()">导出 JSON</button>
+      <button onclick="document.getElementById('import-file').click()">导入 JSON</button>
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importProfile(this)">
+      <span id="save-state" class="hint"></span>
+    </div>
+
+    <h3>部位命名</h3>
+    <p class="hint">给部位起只有你俩懂的私名——名称存独立文件（与参数分离，改参数不影响名字）；「当前显示」为编号的就是待命名部位，填名称即命名。</p>
+    <div class="twrap"><table id="names-table"><tr><th style="width:70px">id 标识</th><th style="width:110px">当前显示</th><th style="width:150px">名称</th><th>别名（逗号分隔）</th></tr></table></div>
+    <div style="margin-top:6px"><button class="primary" id="names-save-btn" onclick="saveNames(this)">保存命名并热生效</button> <span id="names-state" class="hint"></span></div>
+
+    <h3>部位（专业编辑区——表格逐项改；简单添加请用上方「快速添加」卡）</h3>
+    <p class="hint">id＝英文标识（新行留空自动生成拼音）｜label＝显示名称｜敏感度＝天生反应强度（1 麻木-10 极敏感）｜半衰秒＝无刺激时数值消退一半的时长｜别名＝聊天里也叫它的词｜传导＝刺激扩散到哪、传多少（目标id:倍率）。</p>
+    <div id="sens-legend" class="hint"></div>
+    <div class="twrap"><table id="parts-table"><tr>
+      <th class="hide-s" style="width:100px">id 标识</th><th style="width:90px">名称</th><th style="width:190px">敏感度</th>
+      <th class="hide-s" style="width:70px">半衰秒</th><th class="hide-s">别名</th><th>传导</th><th style="width:50px"></th>
+      <th class="only-s" style="width:44px"></th>
+    </tr></table></div>
+    <p class="hint only-s-hint">小屏下 id / 半衰 / 别名 三列已收进「详情」弹层（点行尾按钮编辑），PC 端仍显示全列。</p>
+    <div style="margin-top:8px"><button onclick="addPartRow()">+ 新增部位</button></div>
+    <div id="radiate-preview" style="margin-top:12px"></div>
+
+    <h3>人体神经图（专家视图：点部位改参数；双击空白区新增部位；拖拽节点定位；箭头=传导线。画联动推荐用「联动」tab 的联动编辑器）
+      <button id="btn-3d" style="margin-left:12px;font-size:11px;padding:2px 10px" onclick="toggle3D()">切换 3D 视图</button></h3>
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <div style="position:relative;width:100%;max-width:250px;flex-shrink:0">
+        <svg id="body-map" viewBox="0 0 200 460" style="width:100%;height:auto;background:#0d1117;border:1px solid #30363d;border-radius:10px;touch-action:none;user-select:none"></svg>
+        <div id="body-3d" style="display:none;width:100%;max-width:250px;height:575px;background:#0d1117;border:1px solid #30363d;border-radius:10px;touch-action:none;user-select:none;cursor:grab"></div>
+        <div id="map-3d-hint" class="hint" style="display:none">拖拽旋转｜滚轮缩放｜双击体表新增部位</div>
+      </div>
+      <div id="map-panel" style="flex:1;min-width:min(100%,280px);max-width:420px"></div>
+    </div>
+
+    <h3>AI 快速填写（agent 通道）</h3>
+    <details>
+      <summary style="font-size:12px;color:#58a6ff;cursor:pointer">粘贴部位 JSON 批量合并（给 AI 生成用）</summary>
+      <p class="hint">格式：JSON 数组，每项 {id, label, sens, half_life, aliases, radiate, viz:[x,y,(z)]}；id 已存在则覆盖该项，否则新增。viz 二维用 2D 图坐标（0-200, 0-460），三维 z 可省略。</p>
+      <textarea id="agent-json" rows="6" style="width:100%;background:#0d1117;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;font-size:12px" placeholder='[{"id":"shoulder_blade","label":"肩胛","sens":4,"half_life":120,"aliases":["肩胛骨"],"radiate":{},"viz":[100,140]}]'></textarea>
+      <div style="margin-top:6px;display:flex;gap:8px">
+        <button onclick="agentApply()">解析并合并</button>
+        <button onclick="agentCopyTemplate()">复制当前部位为模板</button>
+        <span id="agent-state" class="hint"></span>
+      </div>
+    </details>
+  </div>
+
+  <div id="view-link" class="panel" style="display:none">
+    <!-- 0.28.1 联动编辑器：人体图点两个部位画传导线，滑条定倍率（0.29.1 人体图响应式：宽 100%、上限 220px，viewBox 不变随宽缩放） -->
+    <div style="border:1px solid #30363d;border-radius:10px;padding:14px 16px;margin-bottom:16px">
+      <h3 style="margin-top:0;color:#58a6ff">联动编辑器 <span class="hint" style="font-weight:400">摸 A 部位会顺着连线带动 B——在图上点两个部位即可画线</span></h3>
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        <div style="position:relative;width:100%;max-width:220px;flex-shrink:0">
+          <svg id="link-map" viewBox="0 0 200 460" style="width:100%;height:auto;background:#0d1117;border:1px solid #30363d;border-radius:10px;touch-action:manipulation;user-select:none"></svg>
+        </div>
+        <div style="flex:1;min-width:min(100%,300px);max-width:470px">
+          <div id="link-panel" style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px"></div>
+          <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px;margin-top:10px">
+            <div style="font-size:12px;color:#e6edf3;margin-bottom:6px"><b>传导规则</b> <span class="hint">全身传导算法，随保存写入档案参数</span></div>
+            <div class="hint" style="margin:4px 0">最大跳数（刺激最多顺链传几步）：
+              <select id="lk-hops" onchange="onLinkRuleChange()">
+                <option value="1">1 跳（只传一步）</option>
+                <option value="2" selected>2 跳（默认）</option>
+                <option value="3">3 跳（传得更远）</option>
+              </select></div>
+            <div class="hint" style="margin:4px 0">衰减模式（多条路径怎么合并）：
+              <select id="lk-mode" onchange="onLinkRuleChange()">
+                <option value="mul" selected>连乘（默认，取最强一条）</option>
+                <option value="sum">求和（多条路径叠加）</option>
+              </select></div>
+            <button style="margin-top:8px" onclick="saveProfile(this)">保存联动并热生效</button>
+            <span class="hint">连线与规则都随本按钮落盘</span>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <div style="font-size:12px;color:#8b949e;margin-bottom:4px">联动预览（给 AI 的文字版，可直接复制进角色设定）</div>
+        <div class="hint" style="margin:2px 0 6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          示例乘数：
+          <select id="lp-method" onchange="renderLinkPreview()" title="接触方式">
+            <option value="rub" selected>揉搓</option><option value="stroke">抚摸</option>
+            <option value="press">按压</option><option value="tap">拍打</option><option value="blow">吹气</option>
+          </select>
+          <select id="lp-material" onchange="renderLinkPreview()" title="示例材质（材质×方式乘数由后端采样）">
+            <option value="">无材质（原值）</option>
+          </select>
+          <span style="color:#8b949e">选材质后链式数值按 材质×方式 乘数放大（按源部位敏感度采样，近似示意）</span>
+        </div>
+        <div id="link-preview" class="hint"></div>
+        <button class="rowbtn" style="margin-top:6px" onclick="copyLinkPreview()">复制预览文字</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="view-params" class="panel" style="display:none">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+      <button class="primary" onclick="saveProfile(this)">保存并热生效</button>
+      <span class="hint">与「部位」tab 顶部保存同一条路径——编辑角色在「部位」tab 顶部选择，导出/导入也在那</span>
+    </div>
+
+    <h3>动作词（角色专属）</h3>
+    <p class="hint">动作词＝聊天里认得的动作（如"摸""揉"），强度 0-1 越大反应越强。这里只放该角色要覆盖/追加的词——快速添加在顶部卡片，全局 21 词见下方说明。带参数的词（方式/频率/类别/冷却…）点「参数」编辑；强度列仍可直接改数字。</p>
+    <div class="twrap"><table id="words-table"><tr><th style="width:130px">动作词</th><th style="width:80px">强度（0-1）</th><th style="width:130px">参数</th><th style="width:50px"></th></tr></table></div>
+    <div style="margin-top:8px"><button onclick="addWordRow()">+ 新增动作词</button></div>
+    <p class="hint">全局词表 21 词在 CONFIG.py（碰抚拨摸拍挠揉搓亲抓捏拽揪舔掐咬吮蹭拂吹）。此处只放角色差异项，留空则完全用全局表。词参数（0.29.0）：方式下拉配材质层五方式、频率/速度/深度/温度供材质增益取样、类别（痛感/温度/气流/束缚）微调增益、冷却秒防复读刷值。</p>
+
+    <h3>档位阈值</h3>
+    <p class="hint">数值涨到多少算『注意 / 反应 / 失控 / 过载』——过"失控"档该部位会短暂冷却，到"过载"档触发全身余韵。min 须严格升序且在 0-1；改动随顶部"保存并热生效"一并提交。</p>
+    <div class="twrap"><table id="tiers-table"><tr><th style="width:110px">档位</th><th style="width:140px">触发线 min</th><th>含义</th></tr></table></div>
+    <p class="hint" id="tiers-hint">数值达到 min 即进入该档；overload 通常 0.85。改动需点顶部"保存并热生效"。</p>
+
+    <details>
+      <summary style="font-size:12px;color:#58a6ff;cursor:pointer">高级参数（增益/冷却/耐受等底层旋钮——留空＝用默认，一般不用动）</summary>
+      <div class="twrap"><table id="params-table"><tr><th style="width:170px">参数（中文名 / 键名）</th><th style="width:130px">值</th><th>范围（默认）与说明</th></tr></table></div>
+      <p class="hint">留空=不覆盖（回落 CONFIG 默认）。改动随顶部"保存并热生效"一并提交。</p>
+    </details>
+  </div>
+
+  <div id="view-doc" class="panel" style="display:none">
+    <details id="howto-card" style="margin-bottom:14px">
+      <summary style="font-size:13px;color:#58a6ff;cursor:pointer"><b>怎么用</b>（三步上手，点开看）</summary>
+      <div style="line-height:2;margin-top:8px;font-size:12px;color:#8b949e">
+        <b style="color:#c9d1d9">① 加部位</b>：进「部位」tab，顶部<b style="color:#58a6ff">快速添加</b>卡输中文名（如"后腰"）点添加即可——id、参数、落点全自动；想给它起只有你俩懂的私名，去同 tab 的「部位命名」区填一行。<br>
+        <b style="color:#c9d1d9">② 加动作词</b>：同一张卡的右栏输入动作词、拉好强度，点添加即生效；想精细调可选"方式/类别/冷却"，高级里还有频率/速度/深度/温度（配材质层用）。<br>
+        <b style="color:#c9d1d9">③ 调联动</b>：进「联动」tab，在<b style="color:#58a6ff">联动编辑器</b>的人体图上，先点源头部位、再点目标部位、拉倍率确认——摸源头时目标会跟着有反应（如摸耳尖带动尾根）。档位与高级参数在「参数」tab＝部位数值涨到多少算「注意/反应/失控/过载」（默认 0.15/0.35/0.6/0.85，一般不用动）。
+      </div>
+    </details>
+
+    <h3>会话绑定</h3>
+    <p class="hint">哪个聊天窗口用哪个角色（/vbody 切换产生）；解绑后该会话回默认角色。</p>
+    <div class="twrap"><table id="bind-table"><tr><th>会话</th><th>角色</th><th style="width:70px"></th></tr></table></div>
+    <div style="margin-top:8px"><button onclick="loadBindings()">刷新绑定</button></div>
+  </div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="/api/plugin/page/bridge-sdk.js"></script>
+<script>
+/* Cross-page selection remains in the authenticated AstrBot plugin detail UI. */
+(function () {
+  function bindNavigation() {
+    document.querySelectorAll(".xnav a[data-pg]").forEach(function (link) {
+      if (link.classList.contains("cur")) return;
+      link.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        var message = "请返回 AstrBot 插件详情，选择对应的" + link.getAttribute("data-pg") + "页面。";
+        if (typeof toast === "function") toast(message);
+        else {
+          var output = document.getElementById("toast");
+          if (output) { output.textContent = message; output.style.display = "block"; }
+        }
+      });
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bindNavigation);
+  else bindNavigation();
+})();
+</script>
+<script>
+/* 官方约定：所有 API 调用走 window.AstrBotPluginPage bridge（dashboard 代理带鉴权）；
+   endpoint 为注册路由去掉 /{插件名} 前缀的短路径。 */
+const bridge = window.AstrBotPluginPage;
+let BRIDGE_READY = null;
+function bridgeReady(){
+  if (!BRIDGE_READY) BRIDGE_READY = bridge ? bridge.ready() : Promise.reject(new Error('bridge 未注入（需部署在 AstrBot WebUI 内打开）'));
+  return BRIDGE_READY;
+}
+const TIER_CN = {notice:'注意', react:'反应', lose:'失控', overload:'过载'};
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let EDIT = null;   // 当前编辑副本 {id, parts:[], action_words:{}}
+let SENS_SCALE = [];   // 官方 sens 语义标尺（后端下发，避免两份硬编码）
+
+function sensName(n){
+  const hit = SENS_SCALE.find(s => s.level === Math.round(+n || 0));
+  return hit ? hit.name : '';
+}
+function renderSensLegend(){
+  const el = document.getElementById('sens-legend');
+  if (!el) return;
+  el.innerHTML = '<b style="color:#8b949e">敏感度标尺</b>（增益系数=0.6+0.04×sens；arousal 权重=sens/10；中等刺激"揉"单次增益≈0.15×系数）：' +
+    SENS_SCALE.map(s => {
+      const hue = Math.round(120 - (s.level - 1) * (120 / 9));   // 绿→红
+      return `<span title="${esc(s.desc)}" style="display:inline-block;margin:2px 4px 2px 0;padding:1px 7px;border-radius:8px;` +
+        `background:hsl(${hue},55%,22%);color:hsl(${hue},70%,70%);border:1px solid hsl(${hue},50%,35%)">` +
+        `${s.level} ${esc(s.name)}</span>`;
+    }).join('') + '<br><span style="color:#8b949e">悬停查看每档的直觉描述</span>';
+}
+
+/* 神经联动演算（0.28.1 统一口径）：与后端 decay.radiate_map 同语义的镜像实现——
+   跳数/模式读档案参数（radiate_hops/radiate_mode，缺省 2 跳/连乘），预览与演算不分家 */
+function linkHops(){
+  const v = parseInt(EDIT && EDIT.params && EDIT.params.radiate_hops, 10);
+  return (v >= 1 && v <= 3) ? v : 2;
+}
+function linkMode(){ return (EDIT && EDIT.params && EDIT.params.radiate_mode === 'sum') ? 'sum' : 'mul'; }
+
+function radiateMapOf(srcId){
+  const byId = Object.fromEntries(EDIT.parts.map(p => [p.id, p]));
+  const cap = linkHops(), sumMode = linkMode() === 'sum';
+  const best = {}, pred = {};
+  let frontier = [[srcId, 1.0, 0, new Set([srcId])]];
+  while (frontier.length){
+    const next = [];
+    for (const [cur, cum, hops, seen] of frontier){
+      if (hops >= cap) continue;
+      const edges = (byId[cur] || {}).radiate || {};
+      for (const rid of Object.keys(edges)){
+        const r = +edges[rid];
+        if (!byId[rid] || !(r > 0) || r > 1 || seen.has(rid)) continue;
+        const cn = Math.min(1, cum * r);
+        if (cn <= 0) continue;
+        if (sumMode) best[rid] = Math.min(1, (best[rid] || 0) + cn);
+        else if (cn > (best[rid] || 0)){ best[rid] = cn; pred[rid] = cur; }
+        const s2 = new Set(seen); s2.add(rid);
+        next.push([rid, cn, hops + 1, s2]);
+      }
+    }
+    frontier = next;
+  }
+  return {best, pred};
+}
+
+function partLabel(id){
+  const p = EDIT && EDIT.parts.find(q => q.id === id);
+  return (p && (p.label || p.id)) || id;
+}
+
+/* 专家表格的联动预览：刺激左部位时，右侧部位按累计传导率获得感知 */
+function radiatePreview(){
+  if (!EDIT) return [];
+  const out = [];
+  for (const p of EDIT.parts){
+    const {best} = radiateMapOf(p.id);
+    const targets = Object.entries(best).sort((a, b) => b[1] - a[1]);
+    if (!targets.length) continue;
+    out.push({src: p.label || p.id, chain: targets.map(([r, v]) => `${partLabel(r)} +${Math.round(v * 100)}%`)});
+  }
+  return out;
+}
+function renderRadiatePreview(){
+  const el = document.getElementById('radiate-preview');
+  if (!el) return;
+  const rows = radiatePreview();
+  el.innerHTML = rows.length
+    ? '<b style="font-size:12px;color:#8b949e">神经联动预览（刺激左部位时，右侧部位按累计传导率获得感知）</b>' +
+      '<table style="margin-top:4px">' + rows.map(r =>
+        `<tr><td style="color:#58a6ff">${esc(r.src)}</td><td>← ${esc(r.chain.join('、'))}</td></tr>`).join('') + '</table>'
+    : '<span class="hint">暂无传导关系——用上方「联动编辑器」点两个部位画线，或在 radiate 列填 目标id:倍率</span>';
+}
+
+async function apiGet(endpoint){ await bridgeReady(); return bridge.apiGet(endpoint); }
+async function apiPost(endpoint, body){ await bridgeReady(); return bridge.apiPost(endpoint, body); }
+
+function toast(msg, isErr){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast' + (isErr ? ' err' : ''); t.style.display = 'block';
+  clearTimeout(t._h); t._h = setTimeout(() => t.style.display = 'none', 3200);
+}
+/* 同一档案的保存串行执行，慢请求期间不解锁，也不覆盖用户编辑副本。 */
+let EDIT_SAVE_PENDING = false;
+function debounceBtn(btn){
+  if (EDIT_SAVE_PENDING || (btn && btn.disabled)){
+    toast('正在保存，请等待当前操作完成', true);
+    return false;
+  }
+  EDIT_SAVE_PENDING = true;
+  if (btn) btn.disabled = true;
+  document.querySelectorAll('#view-parts,#view-link,#view-params').forEach(panel => {
+    panel.inert = true;
+    panel.setAttribute('aria-busy', 'true');
+  });
+  return true;
+}
+function releaseEditSave(btn){
+  EDIT_SAVE_PENDING = false;
+  if (btn) btn.disabled = false;
+  document.querySelectorAll('#view-parts,#view-link,#view-params').forEach(panel => {
+    panel.inert = false;
+    panel.removeAttribute('aria-busy');
+  });
+}
+function arrow(d){ return d > 0.01 ? '<span class="up">↑</span>' : (d < -0.01 ? '<span class="down">↓</span>' : '<span class="flat">→</span>'); }
+let CUR_TAB = 'parts';   // 页内 tab 内存记忆（iframe sandbox 无 allow-same-origin，localStorage 访问抛 SecurityError——只用内存变量，刷新回默认「部位」）
+function switchTab(name){
+  CUR_TAB = name;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  ['overview','parts','link','params','doc'].forEach(v => {
+    const el = document.getElementById('view-' + v);
+    if (el) el.style.display = (v === name) ? '' : 'none';
+  });
+  if (name === 'overview') load();
+  else if (name === 'doc') loadBindings();
+  else loadEditor();   // 部位/联动/参数 共用同一编辑副本（原 editor tab 的 loadEditor+loadBindings 双加载拆到各 tab）
+}
+
+/* ---- 总览 ---- */
+function stateCard(s){
+  const phase = s.phase || 'building';
+  const badge = phase === 'building' ? '' : `<span class="badge ${phase}">${phase}${s.phase_until ? ' · ' + esc(s.phase_until.slice(11,16)) : ''}</span>`;
+  const parts = Object.entries(s.parts || {}).sort((a,b) => b[1].value - a[1].value).map(([pid, p]) => {
+    const bits = [];
+    if (p.tier) bits.push(TIER_CN[p.tier] || p.tier);
+    if (p.last_event_type) bits.push(esc(p.last_event_type));
+    if (p.cooling) bits.push('<span class="cooling">平复中</span>');
+    return `<tr><td>${esc(p.label)}</td><td class="num">${(p.value ?? 0).toFixed(2)}${arrow(p.trend_delta || 0)}</td>` +
+      `<td>${p.sens ?? '-'}</td><td>${p.half_life ?? '-'}s</td><td>${bits.length ? '（' + bits.join('·') + '）' : ''}</td>` +
+      `<td class="num">${p.streak_count || 0}</td></tr>`;
+  }).join('');
+  return `<div class="card">
+    <h2>${esc(s.character_name)} <span style="font-size:11px;color:#8b949e">${esc(s.session)}</span> ${badge}</h2>
+    <div class="kv">
+      <span>兴奋度 <b>${(s.arousal ?? 0).toFixed(2)}</b> / ${s.overload_threshold ?? 0.85}</span>
+      <span>耐受 <b>${(s.tolerance ?? 0).toFixed(2)}</b></span>
+      <span>今日 <b>${s.events_today ?? 0}</b> 次</span>
+      <span>更新 <b>${esc((s.updated_at || '').slice(11,19))}</b> UTC</span>
+    </div>
+    <div class="bar"><i style="width:${Math.min(100, (s.arousal ?? 0) * 100).toFixed(1)}%"></i></div>
+    <table><tr><th>部位</th><th>数值</th><th>sens</th><th>τ</th><th>状态</th><th>连击</th></tr>${parts}</table>
+    ${(s.history || []).length ? `<details style="margin-top:8px"><summary style="font-size:11px;color:#8b949e;cursor:pointer">数值流水（最近 ${s.history.length} 条）</summary>
+      <table style="margin-top:6px">${s.history.slice().reverse().map(h =>
+        `<tr><td class="num">${esc((h.t || '').slice(11,19))}</td><td>${esc(h.part)}</td>` +
+        `<td class="num">${(h.old ?? 0).toFixed(2)} → ${(h.new ?? 0).toFixed(2)}</td><td>${esc(h.src || '')}</td></tr>`).join('')}</table></details>` : ''}
+    <div style="margin-top:10px;text-align:right">
+      <button class="danger" data-action="reset" data-character="${esc(s.character)}" data-session="${esc(s.session)}">重置此会话</button>
+    </div>
+  </div>`;
+}
+
+let OVERVIEW_PENDING = false, OVERVIEW_LOADED = false;
+async function load(){
+  if (OVERVIEW_PENDING) return;
+  OVERVIEW_PENDING = true;
+  try{
+    const data = await apiGet('page/overview');
+    document.getElementById('meta').textContent =
+      `v${data.version} ｜ 角色: ${(data.profiles || []).map(p => p.name).join('、') || '无'} ｜ tick ${data.config?.vb_tick_seconds ?? '-'}s ｜ 注入${data.config?.vb_inject_enabled ? '开' : '关'}`;
+    const states = data.states || [];
+    document.getElementById('grid').innerHTML = states.length
+      ? states.map(stateCard).join('')
+      : '<div class="empty">暂无会话状态——白名单用户在私聊里互动后这里会出现卡片</div>';
+    OVERVIEW_LOADED = true;
+  }catch(e){
+    document.getElementById('meta').textContent = '刷新失败：' + (e.message || e) + (OVERVIEW_LOADED ? '（保留上次成功快照）' : '');
+    if (!OVERVIEW_LOADED) document.getElementById('grid').innerHTML = `<div class="err">加载失败：${esc(e.message || e)}</div>`;
+  }finally{
+    OVERVIEW_PENDING = false;
+  }
+}
+
+/* ---- 编辑器 ---- */
+let EDITOR_LOAD_SEQ = 0;
+async function loadEditor(force = false){
+  if (EDIT_SAVE_PENDING && !force) return;
+  const seq = ++EDITOR_LOAD_SEQ;
+  try{
+    const data = await apiGet('page/profiles');
+    if (seq !== EDITOR_LOAD_SEQ) return;
+    const profiles = data.profiles || {};
+    SENS_SCALE = data.sens_scale || [];
+    NAMES_RAW = data.names || {};   // 始终存整张 map（角色 id → overlay）：旧值若取单角色层，切换角色后会串显示前角色的命名
+    renderSensLegend();
+    const sel = document.getElementById('edit-char');
+    const prev = sel.value;
+    sel.innerHTML = Object.keys(profiles).map(id => `<option value="${esc(id)}">${esc(profiles[id].name)} (${esc(id)})</option>`).join('');
+    if (prev && profiles[prev]) sel.value = prev;
+    if (force || !EDIT || EDIT.id !== sel.value){
+      EDIT = JSON.parse(JSON.stringify(profiles[sel.value] || {id: sel.value, parts: [], action_words: {}}));
+      TIERS_DIRTY = PARAMS_DIRTY = false;   // 换角色/首次载入：脏标记随新副本复位
+      LINK_SRC = -1;                        // 联动编辑器选点同步复位（0.28.1）
+      closeRatioPopup();
+    }
+    renderEditor();
+  }catch(e){ toast('编辑数据加载失败: ' + e.message, true); }
+}
+
+function renderEditor(){
+  if (!EDIT) return;
+  EDIT.parts = Array.isArray(EDIT.parts) ? EDIT.parts : [];                 // 防御性取值：坏数据不白屏
+  EDIT.action_words = (EDIT.action_words && typeof EDIT.action_words === 'object' && !Array.isArray(EDIT.action_words)) ? EDIT.action_words : {};
+  const tb = document.getElementById('parts-table');
+  tb.querySelectorAll('tr:not(:first-child)').forEach(r => r.remove());
+  EDIT.parts.forEach((p, i) => {
+    const radiate = Object.entries(p.radiate || {}).map(([k,v]) => `${k}:${v}`).join(',');
+    const dangling = Object.entries(p.radiate || {}).filter(([rid, rv]) => +rv > 0 && !EDIT.parts.some(q => q.id === rid));
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="hide-s"><input value="${esc(p.id)}" data-i="${i}" data-k="id" ${p._new ? 'placeholder="留空=按名称自动生成"' : 'readonly'}></td>
+      <td><input value="${esc(p.label)}" data-i="${i}" data-k="label"></td>
+      <td><input type="range" min="1" max="10" step="1" value="${Math.round(+p.sens || 5)}" data-i="${i}" data-k="sens" style="width:84px;vertical-align:middle">
+        <span style="font-size:11px;margin-left:4px;color:#8b949e" data-senslabel="${i}">${esc(p.sens)}·${esc(sensName(p.sens))}</span></td>
+      <td class="hide-s"><input class="w80" value="${esc(p.half_life)}" data-i="${i}" data-k="half_life"></td>
+      <td class="hide-s"><input value="${esc((p.aliases || []).join(','))}" data-i="${i}" data-k="aliases"></td>
+      <td><input value="${esc(radiate)}" data-i="${i}" data-k="radiate" ${dangling.length ? 'style="border-color:#f85149" title="悬空传导目标: ' + esc(dangling.map(d => d[0]).join(', ')) + '（部位已删除，保存前需清理）"' : ''}></td>
+      <td><button class="rowbtn danger" onclick="delPart(${i})">删</button></td>
+      <td class="only-s"><button class="rowbtn" data-action="part-detail" data-i="${i}" title="id / 半衰 / 别名（小屏隐藏列）">详情</button></td>`;
+    tr.querySelectorAll('input').forEach(inp => inp.addEventListener('change', onPartEdit));
+    tb.appendChild(tr);
+  });
+  const wt = document.getElementById('words-table');
+  wt.querySelectorAll('tr:not(:first-child)').forEach(r => r.remove());
+  Object.entries(EDIT.action_words || {}).forEach(([w, v], i) => {
+    const isParam = wordIsParam(v);
+    const summary = isParam ? wordSummary(v) : '';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><input value="${esc(w)}" data-w="${esc(w)}" data-k="word"></td>
+      <td><input value="${wordVal(v)}" data-w="${esc(w)}" data-k="val"></td>
+      <td>${isParam ? `<span class="hint" style="display:block;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(summary)}">${esc(summary) || '（已参数化）'}</span>` : '<span class="hint">—</span>'}
+        <button class="rowbtn" data-action="word-params" data-word="${esc(w)}">参数</button></td>
+      <td><button class="rowbtn danger" data-action="delword" data-word="${esc(w)}">删</button></td>`;
+    tr.querySelectorAll('input').forEach(inp => inp.addEventListener('change', onWordEdit));
+    wt.appendChild(tr);
+  });
+  renderRadiatePreview();
+  renderBodyMap();
+  render3D();
+  renderNamesTable();
+  renderTiersTable();
+  renderParamsTable();
+  renderLinkMap();       // 联动编辑器（0.28.1）：与编辑副本同步重画
+  renderLinkPanel();
+  renderLinkRules();
+  renderLinkPreview();
+}
+
+/* 人体图双击空白/轮廓：原地命名气泡（预设智能预选，id 自动） */
+document.addEventListener('dblclick', async (e) => {
+  const svg = e.target.closest('#body-map');
+  if (!svg || !EDIT) return;
+  if (e.target.closest('g[transform]')) return;   // 节点上双击不新增
+  const pt = svgPoint(e);
+  showNameBubble(e.clientX, e.clientY, [Math.round(pt.x), Math.round(pt.y)], async (label, preset) => {
+    const id = preset ? preset.id : await slugLabel(label, EDIT.parts);
+    const sens = preset ? preset.sens : 5;
+    const hl = preset ? preset.hl : 1200;
+    const aliases = preset ? [label] : [];
+    EDIT.parts.push({id, label, sens, half_life: hl, aliases, radiate:{}, viz:[Math.round(pt.x), Math.round(pt.y)], _new:true});
+    MAP_SEL = EDIT.parts.length - 1;
+    renderEditor();
+    toast(`已添加「${label}」(id: ${id})`);
+  });
+});
+
+function collectInput(tr, i, k, value){
+  if (k === 'id' || k === 'label') EDIT.parts[i][k] = value.trim();
+  else if (k === 'sens' || k === 'half_life') EDIT.parts[i][k] = parseFloat(value) || 0;
+  else if (k === 'aliases') EDIT.parts[i][k] = value.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+  else if (k === 'radiate') {
+    const r = {};
+    value.split(/[,，]/).map(s => s.trim()).filter(Boolean).forEach(item => {
+      const [rid, ratio] = item.split(':');
+      if (rid && ratio) r[rid.trim()] = parseFloat(ratio) || 0;
+    });
+    EDIT.parts[i][k] = r;
+  }
+  renderEditor();
+}
+function onPartEdit(e){ const i = +e.target.dataset.i; collectInput(e.target.closest('tr'), i, e.target.dataset.k, e.target.value); }
+function addPartRow(){ EDIT.parts.push({id: `new_part_${EDIT.parts.length + 1}`, label: '新部位', sens: 5, half_life: 1200, aliases: [], radiate: {}, _new: true}); renderEditor(); }
+function delPart(i){ EDIT.parts.splice(i, 1); renderEditor(); }
+
+/* ---- 部位详情弹层（0.29.1）：小屏 <640px 部位表隐藏 id/半衰/别名 三列，点「详情」在弹层编辑——功能不减 ---- */
+let PART_POPUP = null, PART_POPUP_OUTSIDE = null;
+function closePartDetail(){
+  if (PART_POPUP_OUTSIDE){ document.removeEventListener('pointerdown', PART_POPUP_OUTSIDE); PART_POPUP_OUTSIDE = null; }
+  if (PART_POPUP){ PART_POPUP.remove(); PART_POPUP = null; }
+}
+function showPartDetail(i, ax, ay){
+  closePartDetail();
+  if (!EDIT || !EDIT.parts[i]) return;
+  const p = EDIT.parts[i];
+  const div = document.createElement('div');
+  div.style.cssText = `position:fixed;left:${Math.max(8, Math.min(window.innerWidth - 262, ax))}px;` +
+    `top:${Math.max(8, Math.min(window.innerHeight - 250, ay))}px;z-index:9999;background:#161b22;` +
+    `border:1px solid #1f6feb88;border-radius:8px;padding:12px;box-shadow:0 4px 18px #000a;width:246px`;
+  div.innerHTML = `
+    <div style="font-size:13px;color:#e6edf3;margin-bottom:2px">「${esc(p.label || p.id)}」详情</div>
+    <div class="hint">小屏隐藏的三列在此编辑；名称/敏感度/传导仍在表格行内</div>
+    <div class="hint" style="margin:6px 0">id 标识：<input id="pd-id" value="${esc(p.id)}" ${p._new ? 'placeholder="留空=按名称自动生成"' : 'readonly'} style="width:100%"></div>
+    <div class="hint" style="margin:6px 0">半衰秒：<input id="pd-hl" type="number" value="${esc(p.half_life)}" style="width:90px"></div>
+    <div class="hint" style="margin:6px 0">别名（逗号分隔）：<input id="pd-alias" value="${esc((p.aliases || []).join(','))}" style="width:100%"></div>
+    <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:8px">
+      <button class="rowbtn" id="pd-cancel">取消</button>
+      <button class="rowbtn" id="pd-ok" style="background:#1f6feb;color:#fff;border-color:#1f6feb">写入</button>
+    </div>`;
+  document.body.appendChild(div);
+  PART_POPUP = div;
+  const finish = (ok) => {
+    if (!PART_POPUP) return;   // 幂等：写入/取消/点外多路触发只结算一次
+    if (ok){
+      if (p._new) p.id = div.querySelector('#pd-id').value.trim() || p.id;
+      const hl = parseFloat(div.querySelector('#pd-hl').value);
+      if (isFinite(hl)) p.half_life = hl;
+      p.aliases = div.querySelector('#pd-alias').value.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+      renderEditor();
+      toast('已写入编辑副本——点"保存并热生效"落盘');
+    }
+    closePartDetail();
+  };
+  div.querySelector('#pd-ok').addEventListener('click', () => finish(true));
+  div.querySelector('#pd-cancel').addEventListener('click', () => finish(false));
+  setTimeout(() => {
+    if (!PART_POPUP) return;
+    PART_POPUP_OUTSIDE = (ev) => { if (PART_POPUP && !PART_POPUP.contains(ev.target)) finish(false); };
+    document.addEventListener('pointerdown', PART_POPUP_OUTSIDE);
+  }, 50);
+}
+
+function onWordEdit(e){
+  const old = e.target.dataset.w, k = e.target.dataset.k, v = e.target.value.trim();
+  const val = parseFloat(v);
+  if (k === 'word'){
+    if (!v){ renderEditor(); return; }
+    if (old !== v && EDIT.action_words[v] !== undefined){ toast(`动作词"${v}"已存在，已合并为较大强度`, true); EDIT.action_words[v] = Math.max(wordVal(EDIT.action_words[v]) ?? 0, wordVal(EDIT.action_words[old]) ?? 0); delete EDIT.action_words[old]; }
+    else if (old !== v){ EDIT.action_words[v] = EDIT.action_words[old]; delete EDIT.action_words[old]; }
+  }
+  else if (!isNaN(val)){
+    const cur = EDIT.action_words[old];
+    if (wordIsParam(cur)){ EDIT.action_words[old] = {...cur, s: Math.max(0, Math.min(1, val))}; }   // 参数形态：只改 s，其余参数保留
+    else { EDIT.action_words[old] = val; }
+  }
+  renderEditor();
+}
+function addWordRow(){ EDIT.action_words[`新动作${Object.keys(EDIT.action_words).length + 1}`] = 0.5; renderEditor(); }
+
+/* ---- 档位阈值 + 高级参数（0.27.8 自定义入口：随 profile/save 的 tiers/params 键提交） ---- */
+const TIERS_DEFAULT = [
+  {key:'notice', min:0.10}, {key:'react', min:0.30}, {key:'lose', min:0.55}, {key:'overload', min:0.85}
+];
+const TIER_DESC = {
+  notice: '数值 ≥ min 进入注意档（最低感知线）', react: '明显反应线',
+  lose: '失控线（此档后部位冷却）', overload: '过载线（触发余韵/不应期）'
+};
+const PARAM_DEFS = [
+  {key:'gain',           label:'事件增益 gain',  min:0,   max:1,    def:0.25, hint:'单次事件基础增益系数'},
+  {key:'cool_seconds',   label:'lose 后冷却秒',  min:0,   max:3600, def:20,   hint:'失控档后部位冷却时长（秒）'},
+  {key:'tolerance_gain', label:'耐受增量',       min:0,   max:1,    def:0.03, hint:'每次事件的耐受增量系数'},
+  {key:'night_mult',     label:'夜间倍率',       min:0.1, max:3,    def:1.1,  hint:'深夜刺激敏感度倍数'},
+  {key:'habit_streak',   label:'习惯化次数',     min:1,   max:20,   def:3,    hint:'同部位连续快速刺激达此次数触发递减'},
+  {key:'habit_window',   label:'习惯化窗口秒',   min:5,   max:600,  def:60,   hint:'计数重置窗口（秒）'},
+  {key:'habit_factor',   label:'习惯化倍数',     min:0,   max:1,    def:0.7,  hint:'习惯化后的增益乘数（收益递减）'}
+];
+let TIERS_DIRTY = false, PARAMS_DIRTY = false;   // 只在用户改动对应卡后才随保存提交（未动不写覆盖层）
+
+function validTiers(t){
+  return Array.isArray(t) && t.length === 4 &&
+    ['notice','react','lose','overload'].every((k, i) => t[i] && t[i].key === k && isFinite(+t[i].min));
+}
+
+function renderTiersTable(){
+  const tb = document.getElementById('tiers-table');
+  if (!tb || !EDIT) return;
+  const ok = validTiers(EDIT.tiers);
+  const tiers = ok ? EDIT.tiers : TIERS_DEFAULT.map(t => ({key: t.key, min: t.min}));
+  const hint = document.getElementById('tiers-hint');
+  if (hint) hint.textContent = ok
+    ? '数值达到 min 即进入该档。改动需点顶部"保存并热生效"。'
+    : '当前档案无有效 tiers，先显示参考值——改动保存后将写入 4 档阈值（首存生成）。';
+  tb.querySelectorAll('tr:not(:first-child)').forEach(r => r.remove());
+  tiers.forEach(t => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${TIER_CN[t.key] || esc(t.key)}</td>
+      <td><input class="w80" type="number" step="0.01" min="0" max="1" value="${+t.min}" data-tier="${esc(t.key)}"></td>
+      <td class="hint">${esc(TIER_DESC[t.key] || '')}</td>`;
+    tr.querySelector('input').addEventListener('change', e => {
+      const v = parseFloat(e.target.value);
+      if (!isFinite(v)){ toast('触发线须为数字', true); renderTiersTable(); return; }
+      EDIT.tiers = tiers.map(x => ({key: x.key, min: x.key === t.key ? v : +x.min}));   // 立即入副本（重渲染不丢）
+      TIERS_DIRTY = true;
+      renderTiersTable();
+    });
+    tb.appendChild(tr);
+  });
+}
+
+function collectTiers(){
+  if (!validTiers(EDIT.tiers)) return {ok: false, err: '档位阈值无效（须 4 项 notice/react/lose/overload，min 为数字）'};
+  let prev = -1;
+  for (const x of EDIT.tiers){
+    const mn = +x.min;
+    if (!(mn >= 0 && mn <= 1)) return {ok: false, err: `档位 ${TIER_CN[x.key] || x.key} 的 min 须在 0-1`};
+    if (mn <= prev) return {ok: false, err: '档位 min 须严格升序（notice < react < lose < overload）'};
+    prev = mn;
+  }
+  return {ok: true, tiers: EDIT.tiers.map(x => ({key: x.key, min: Math.round(+x.min * 10000) / 10000}))};
+}
+
+function renderParamsTable(){
+  const tb = document.getElementById('params-table');
+  if (!tb || !EDIT) return;
+  if (!EDIT.params || typeof EDIT.params !== 'object' || Array.isArray(EDIT.params)) EDIT.params = {};
+  tb.querySelectorAll('tr:not(:first-child)').forEach(r => r.remove());
+  PARAM_DEFS.forEach(d => {
+    const cur = EDIT.params[d.key];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${esc(d.label)}<div class="hint">${esc(d.key)}</div></td>
+      <td><input class="w80" type="number" step="any" min="${d.min}" max="${d.max}" value="${cur === undefined ? '' : +cur}" placeholder="${d.def}" data-pk="${esc(d.key)}"></td>
+      <td class="hint">${d.min}–${d.max}（默认 ${d.def}）｜${esc(d.hint)}</td>`;
+    tr.querySelector('input').addEventListener('change', e => {
+      const raw = String(e.target.value ?? '').trim();
+      if (raw === ''){ delete EDIT.params[d.key]; PARAMS_DIRTY = true; renderParamsTable(); return; }   // 清空=回落默认
+      const v = parseFloat(raw);
+      if (!isFinite(v) || v < d.min || v > d.max){
+        toast(`参数 ${d.key} 须在 ${d.min}–${d.max}`, true);
+        renderParamsTable();   // 回滚为当前生效值
+        return;
+      }
+      EDIT.params[d.key] = (d.key === 'habit_streak' || d.key === 'habit_window') ? Math.round(v) : Math.round(v * 10000) / 10000;
+      PARAMS_DIRTY = true;
+      renderParamsTable();
+    });
+    tb.appendChild(tr);
+  });
+}
+
+async function buildSavePayload(){
+  /* 保存载荷组装（0.28.1 抽公共件：顶部保存与快速添加/联动编辑共用一条保存路径） */
+  const cleanParts = EDIT.parts.map(({_new, ...p}) => p);   // 剥内部标记，不入档案
+  await ensureIds(cleanParts);                               // id 兜底自动生成（拼音 slug，失败 part_N）
+  const payload = {character: EDIT.id, parts: cleanParts, action_words: EDIT.action_words};
+  if (TIERS_DIRTY){
+    const t = collectTiers();
+    if (!t.ok) throw new Error(t.err);
+    payload.tiers = t.tiers;                                 // 档位阈值卡（0.27.8 自定义入口）
+  }
+  if (PARAMS_DIRTY) payload.params = {...EDIT.params};       // 高级参数卡：整包提交（留空键已从副本删除）
+  return payload;
+}
+async function saveEditCopy(){
+  await apiPost('page/profile/save', await buildSavePayload());
+  TIERS_DIRTY = PARAMS_DIRTY = false;
+}
+
+async function saveProfile(btn){
+  if (!debounceBtn(btn)) return;
+  const st = document.getElementById('save-state');
+  st.textContent = '保存中…';
+  try{
+    await saveEditCopy();
+    st.textContent = '已保存并热生效 ✓';
+    toast('已保存，运行中的会话立即使用新部位/关键词/档位/参数');
+    await loadEditor(true); load();
+  }catch(e){
+    st.textContent = '保存失败：' + (e.message || e) + '（编辑内容已保留）';
+    toast('保存失败: ' + (e.message || e), true);
+  }finally{
+    releaseEditSave(btn);
+  }
+}
+
+/* ---- 快速添加（0.28.1）：输中文名一步完成，不进表格找格子 ---- */
+function quickVizSpot(){
+  /* 自动落点：人体轮廓网格扫描，取离现有节点最远的空位（够远即收） */
+  const taken = EDIT.parts.map((p, i) => partPos(p, i));
+  let best = [100, 210], bestD = -1;
+  for (let y = 60; y <= 440; y += 34){
+    for (let x = 50; x <= 150; x += 25){
+      let d = 999;
+      for (const t of taken) d = Math.min(d, Math.hypot(t[0] - x, t[1] - y));
+      if (d > bestD){ bestD = d; best = [x, y]; }
+      if (bestD >= 34) return best;
+    }
+  }
+  return best;
+}
+
+async function quickAddPart(btn){
+  if (!EDIT){ toast('编辑数据未就绪，稍候再试', true); return; }
+  const nameEl = document.getElementById('qa-part-name');
+  const label = nameEl.value.trim();
+  const st = document.getElementById('qa-part-state');
+  if (!label){ toast('请先输入部位名（如"后腰"）', true); return; }
+  if (EDIT.parts.some(p => (p.label || '') === label)){ toast(`「${label}」已存在——同名部位不用重复添加`, true); return; }
+  if (!debounceBtn(btn, 800)) return;
+  st.textContent = '添加中…';
+  try{
+    const id = await slugLabel(label, EDIT.parts);
+    const aliasRaw = document.getElementById('qa-alias').value.trim();
+    const sens = Math.max(1, Math.min(10, parseInt(document.getElementById('qa-sens').value, 10) || 5));
+    const hl = Math.max(5, Math.min(3600, parseFloat(document.getElementById('qa-halflife').value) || 1200));
+    const aliases = aliasRaw ? aliasRaw.split(/[,，]/).map(s => s.trim()).filter(Boolean) : [label];
+    EDIT.parts.push({id, label, sens, half_life: hl, aliases, radiate: {}, viz: quickVizSpot()});
+    await saveEditCopy();   // 一步完成：直接保存热生效
+    nameEl.value = '';
+    document.getElementById('qa-alias').value = '';
+    st.textContent = '';
+    toast(`已添加「${label}」（id: ${id}）——去「部位命名」区可给它起私名`);
+    await loadEditor(true);
+  }catch(e){
+    st.textContent = '';
+    toast('添加失败: ' + (e.message || e), true);
+  }finally{
+    releaseEditSave(btn);
+  }
+}
+
+/* ---- 动作词参数化（0.29.0）：值两种形态，数字=纯强度（旧），dict=带方式/频率/…参数 ---- */
+const WORD_METHOD_CN = {stroke:'抚摸', press:'按压', rub:'揉搓', tap:'拍打', blow:'吹气'};
+const WORD_TYPE_CN = {touch:'触碰', pain:'痛感', temp:'温度', air:'气流', constrain:'束缚'};
+
+function wordVal(v){
+  /* 取强度：数字形态直取，dict 形态取 .s（坏值回 0.5） */
+  if (v !== null && typeof v === 'object' && !Array.isArray(v)){
+    const s = +v.s;
+    return isFinite(s) ? Math.max(0, Math.min(1, s)) : 0.5;
+  }
+  const n = +v;
+  return isFinite(n) ? Math.max(0, Math.min(1, n)) : 0.5;
+}
+function wordIsParam(v){ return v !== null && typeof v === 'object' && !Array.isArray(v); }
+function wordSummary(v){
+  /* 专家表格参数摘要："揉搓·10Hz·痛感·冷却30s" */
+  if (!wordIsParam(v)) return '';
+  const bits = [];
+  if (v.method && WORD_METHOD_CN[v.method]) bits.push(WORD_METHOD_CN[v.method]);
+  if (v.freq_hz !== undefined) bits.push(`${+v.freq_hz}Hz`);
+  if (v.speed_cm_s !== undefined) bits.push(`${+v.speed_cm_s}cm/s`);
+  if (v.depth !== undefined) bits.push(`深${+v.depth}`);
+  if (v.temp_c !== undefined) bits.push(`${+v.temp_c}°C`);
+  if (v.type && v.type !== 'touch' && WORD_TYPE_CN[v.type]) bits.push(WORD_TYPE_CN[v.type]);
+  if (+v.cooldown_s > 0) bits.push(`冷却${+v.cooldown_s}s`);
+  return bits.join('·');
+}
+function canonicalWordVal(s, params){
+  /* 全参数默认时归一为纯数字（旧形态），任一参数非默认才落 dict——旧档案不会被无意义键污染 */
+  const p = params || {};
+  if (!p.method && (!p.type || p.type === 'touch') && !(+p.cooldown_s > 0) &&
+      p.freq_hz === undefined && p.speed_cm_s === undefined &&
+      p.depth === undefined && p.temp_c === undefined) return Math.round(+s * 100) / 100;
+  const out = {s: Math.round(+s * 100) / 100};
+  if (p.method) out.method = p.method;
+  if (p.type && p.type !== 'touch') out.type = p.type;
+  if (+p.cooldown_s > 0) out.cooldown_s = Math.round(+p.cooldown_s);
+  for (const k of ['freq_hz', 'speed_cm_s', 'depth', 'temp_c']) if (p[k] !== undefined) out[k] = +p[k];
+  return out;
+}
+
+async function quickAddWord(btn){
+  if (!EDIT){ toast('编辑数据未就绪，稍候再试', true); return; }
+  const wEl = document.getElementById('qa-word');
+  const w = wEl.value.trim();
+  const st = document.getElementById('qa-word-state');
+  if (!w){ toast('请先输入动作词', true); return; }
+  if (w.length > 32){ toast('动作词过长（≤32 字符）', true); return; }
+  if (!debounceBtn(btn, 800)) return;
+  st.textContent = '添加中…';
+  try{
+    const s = Math.max(0, Math.min(1, parseFloat(document.getElementById('qa-strength').value) || 0.5));
+    /* 0.29.0 可选参数：方式/类别/冷却直选；频率/速度/深度/温度勾选才带（配材质层用） */
+    const params = {};
+    const method = document.getElementById('qa-word-method').value;
+    if (method) params.method = method;
+    const wtype = document.getElementById('qa-word-type').value;
+    if (wtype && wtype !== 'touch') params.type = wtype;
+    const cd = Math.max(0, Math.min(3600, parseFloat(document.getElementById('qa-word-cooldown').value) || 0));
+    if (cd > 0) params.cooldown_s = cd;
+    if (document.getElementById('qa-p-freq-on').checked) params.freq_hz = +document.getElementById('qa-p-freq').value;
+    if (document.getElementById('qa-p-speed-on').checked) params.speed_cm_s = +document.getElementById('qa-p-speed').value;
+    if (document.getElementById('qa-p-depth-on').checked) params.depth = +document.getElementById('qa-p-depth').value;
+    if (document.getElementById('qa-p-temp-on').checked) params.temp_c = +document.getElementById('qa-p-temp').value;
+    const val = canonicalWordVal(s, params);
+    const existed = EDIT.action_words[w] !== undefined;
+    EDIT.action_words[w] = val;
+    await saveEditCopy();   // 一步完成：直接并入 action_words 保存
+    wEl.value = '';
+    document.getElementById('qa-word-cooldown').value = '0';
+    document.getElementById('qa-word-method').value = '';
+    document.getElementById('qa-word-type').value = 'touch';
+    for (const k of ['freq', 'speed', 'depth', 'temp']) document.getElementById(`qa-p-${k}-on`).checked = false;
+    st.textContent = '';
+    const pTxt = wordIsParam(val) ? `（带参数：${wordSummary(val)}）` : '';
+    toast(existed ? `动作词「${w}」已更新${pTxt}` : `已添加动作词「${w}」强度 ${wordVal(val)}${pTxt}`);
+    await loadEditor(true);
+  }catch(e){
+    st.textContent = '';
+    toast('添加失败: ' + (e.message || e), true);
+  }finally{
+    releaseEditSave(btn);
+  }
+}
+
+/* ---- 命名层（独立于参数层）---- */
+let NAMES_RAW = {};   // {pid: {label, aliases}} 后端 overlay 原文
+
+function renderNamesTable(){
+  const tb = document.getElementById('names-table');
+  if (!tb || !EDIT) return;
+  tb.querySelectorAll('tr:not(:first-child)').forEach(r => r.remove());
+  EDIT.parts.forEach((p, i) => {
+    const isPlaceholder = /^\d{1,2}$/.test(String(p.label || ''));
+    const overlay = ((NAMES_RAW[EDIT.id] || {})[p.id]) || {};
+    const tr = document.createElement('tr');
+    tr.style.opacity = isPlaceholder ? '1' : '0.55';
+    tr.innerHTML = `<td>${esc(p.id)}</td>
+      <td>${esc(p.label || '')}${isPlaceholder ? ' <span class="hint">待命名</span>' : ''}</td>
+      <td><input data-nid="${esc(p.id)}" data-nk="label" value="${esc(overlay.label || '')}" placeholder="${esc(isPlaceholder ? '填写名称' : '（已有名，可覆盖）')}"></td>
+      <td><input data-nid="${esc(p.id)}" data-nk="aliases" value="${esc((overlay.aliases || []).join(','))}"></td>`;
+    tb.appendChild(tr);
+  });
+}
+
+async function saveNames(btn){
+  const st = document.getElementById('names-state');
+  const btnEl = btn || document.getElementById('names-save-btn');
+  const payload = {};
+  document.querySelectorAll('#names-table input[data-nid]').forEach(inp => {
+    const pid = inp.dataset.nid;
+    payload[pid] = payload[pid] || {label: '', aliases: []};
+    if (inp.dataset.nk === 'label') payload[pid].label = inp.value.trim();
+    else payload[pid].aliases = inp.value.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+  });
+  const filled = Object.fromEntries(Object.entries(payload).filter(([, v]) => v.label));
+  const clearingAll = !Object.keys(filled).length && Object.keys(payload).length > 0;
+  // 清空全部命名走两步确认（页内 armed 模式，同重置/解绑按钮惯例）
+  if (clearingAll && btnEl && btnEl.dataset.armed !== '1'){
+    btnEl.dataset.armed = '1';
+    st.textContent = '将清空全部命名（回落参数层编号），再点一次确认';
+    setTimeout(() => { if (btnEl.isConnected){ btnEl.dataset.armed = ''; st.textContent = ''; } }, 4000);
+    return;
+  }
+  if (btnEl) btnEl.dataset.armed = '';
+  if (!clearingAll && !Object.keys(filled).length){ toast('没有可保存的命名（名称为空）', true); return; }
+  if (!debounceBtn(btnEl)) return;   // 两步确认之后才防抖（不吃确认点击）
+  st.textContent = clearingAll ? '清空中…' : '保存中…';
+  try{
+    await apiPost('page/profile/names/save', {character: EDIT.id, names: filled});
+    st.textContent = clearingAll ? '已清空全部命名 ✓' : `已保存 ${Object.keys(filled).length} 条命名并热生效 ✓`;
+    toast(clearingAll ? '命名已全部清空（回落参数层编号）' : '命名已生效（3D 图与对话抽取立即使用新名）');
+    await loadEditor(true); load();
+  }catch(e){
+    st.textContent = '';
+    st.textContent = '保存失败：' + (e.message || e) + '（编辑内容已保留）';
+    toast('命名保存失败: ' + (e.message || e), true);
+  }finally{
+    releaseEditSave(btnEl);
+  }
+}
+
+/* ---- 导出/导入（纯前端：导出从编辑副本生成下载；导入填入编辑器，经人工确认后才保存落盘） ---- */
+function exportProfile(){
+  if (!EDIT){ toast('编辑数据未就绪', true); return; }
+  const blob = new Blob([JSON.stringify(EDIT, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${EDIT.id}_profile.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importProfile(input){
+  if (EDIT_SAVE_PENDING){ toast('正在保存，请稍后导入', true); return; }
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024){ toast('档案文件过大（最多 2 MB）', true); input.value = ''; return; }
+  const reader = new FileReader();
+  reader.onerror = () => toast('档案读取失败，请重新选择文件', true);
+  reader.onload = () => {
+    try{
+      if (EDIT_SAVE_PENDING) throw new Error('正在保存，请稍后重新导入');
+      const data = JSON.parse(reader.result);
+      if (!data || typeof data !== 'object' || !data.id || !Array.isArray(data.parts) ||
+          data.parts.some(p => !p || typeof p !== 'object' || Array.isArray(p))) throw new Error('缺少有效 id 或 parts 字段');
+      const sel = document.getElementById('edit-char');
+      if (![...sel.options].some(o => o.value === data.id)) throw new Error('未知角色，请先建立该角色档案再导入');
+      const hasParams = Object.prototype.hasOwnProperty.call(data, 'params');
+      const hasTiers = Object.prototype.hasOwnProperty.call(data, 'tiers');
+      if (hasParams && (!data.params || typeof data.params !== 'object' || Array.isArray(data.params))) throw new Error('params 必须是对象');
+      if (hasTiers && !validTiers(data.tiers)) throw new Error('tiers 须为有效的四档阈值');
+      if (data.action_words !== undefined && (!data.action_words || typeof data.action_words !== 'object' || Array.isArray(data.action_words))) throw new Error('action_words 必须是对象');
+      data.action_words = data.action_words || {};
+      data.params = hasParams ? data.params : {};
+      data.tiers = hasTiers ? data.tiers : [];
+      EDIT = data;
+      // 显式导入的参数和阈值必须跟随下一次保存提交；缺省字段保留服务端原值。
+      TIERS_DIRTY = hasTiers;
+      PARAMS_DIRTY = hasParams;
+      sel.value = data.id;
+      renderEditor();
+      toast(`已导入 ${data.id} 的档案（${data.parts.length} 个部位）——检查无误后点"保存并热生效"落盘`);
+    }catch(e){ toast('导入失败：' + e.message, true); }
+  };
+  reader.readAsText(file, 'utf-8');
+  input.value = '';
+}
+
+async function reset(character, session){
+  try{
+    await apiPost('page/state/reset', {character, session});
+    toast('已重置');
+    load();
+  }catch(e){ toast('重置失败：' + (e.message || e), true); }
+}
+
+/* ---- 会话绑定 ---- */
+async function loadBindings(){
+  const tb = document.getElementById('bind-table');
+  try{
+    const data = await apiGet('page/bindings');
+    const entries = Object.entries(data.bindings || {});
+    tb.querySelectorAll('tr:not(:first-child)').forEach(r => r.remove());
+    if (!entries.length){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td colspan="3" class="hint">无绑定（全部会话用默认角色: ${esc(data.default_character || '-')}）</td>`;
+      tb.appendChild(tr);
+      return;
+    }
+    entries.forEach(([session, character]) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${esc(session)}</td><td>${esc(character)}</td>` +
+        `<td><button class="rowbtn danger" data-action="delbind" data-session="${esc(session)}">解绑</button></td>`;
+      tb.appendChild(tr);
+    });
+  }catch(e){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="3" class="err">加载失败: ${esc(e.message)}</td>`;
+    tb.querySelectorAll('tr:not(:first-child)').forEach(r => r.remove());
+    tb.appendChild(tr);
+  }
+}
+
+async function delBinding(session){
+  try{
+    await apiPost('page/binding/delete', {session});
+    toast('已解绑');
+    loadBindings();
+  }catch(e){ toast('解绑失败：' + (e.message || e), true); }
+}
+
+/* 危险操作两步确认（iframe 沙箱禁 confirm/alert，恒 false 只能页内实现）+ 事件委托（消内联 onclick 注入面） */
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const act = btn.dataset.action;
+  if ((act === 'reset' || act === 'delbind') && btn.dataset.armed !== '1'){
+    btn.dataset.armed = '1';
+    btn.dataset.origText = btn.textContent;
+    btn.textContent = act === 'reset' ? '再点一次确认重置' : '再点一次确认解绑';
+    btn.classList.add('danger-armed');
+    setTimeout(() => {
+      if (btn.isConnected && btn.dataset.armed === '1'){
+        btn.dataset.armed = '';
+        btn.textContent = btn.dataset.origText;
+        btn.classList.remove('danger-armed');
+      }
+    }, 4000);
+    return;
+  }
+  if (act === 'reset'){ await reset(btn.dataset.character, btn.dataset.session); }
+  else if (act === 'delbind'){ await delBinding(btn.dataset.session); }
+  else if (act === 'delword'){ delete EDIT.action_words[btn.dataset.word]; renderEditor(); }
+  else if (act === 'part-detail'){ showPartDetail(+btn.dataset.i, btn.getBoundingClientRect().left, btn.getBoundingClientRect().top); }   // 小屏隐藏列详情弹层（0.29.1）
+  else if (act === 'word-params'){ showWordParamsPopup(btn.dataset.word, btn.getBoundingClientRect().left, btn.getBoundingClientRect().top); }   // 动作词参数弹层（0.29.0）
+  else if (act === 'link-cancel-src'){ LINK_SRC = -1; renderLinkMap(); renderLinkPanel(); }   // 联动编辑器取消选点（0.28.1）
+});
+
+/* ---- 人体神经图（SVG 交互）---- */
+const SVG_NS = 'http://www.w3.org/2000/svg';
+/* 已知部位的默认坐标（正面人体 viewBox 200×460；自定义部位散布待拖） */
+const DEFAULT_POS = {
+  head_top:[100,12], ear_tip:[73,36], cheek:[87,44], chin:[100,56], nape:[100,72], neck:[100,84],
+  collarbone:[100,95], shoulder:[64,95], back:[100,130], waist:[100,182], belly:[100,210],
+  arm:[52,150], wrist:[42,222], palm:[36,252], thigh:[80,272], knee:[80,335], calf:[80,375],
+  ankle:[80,418], sole:[80,442], tail_root:[100,238], tail_base:[100,238],
+};
+let MAP_SEL = -1;   // 选中部位索引
+let MAP_DRAG = null;
+
+function partPos(p, i){
+  if (Array.isArray(p.viz) && p.viz.length === 2 && isFinite(+p.viz[0]) && isFinite(+p.viz[1])) return [+p.viz[0], +p.viz[1]];
+  if (DEFAULT_POS[p.id]) return DEFAULT_POS[p.id];
+  return [100 + ((i * 47) % 90) - 45, 150 + ((i * 31) % 120)];
+}
+function sensHue(n){ return Math.round(120 - (Math.round(n) - 1) * (120 / 9)); }
+
+function el(tag, attrs, parent){
+  const e = document.createElementNS(SVG_NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+/* 人体剪影（0.28.1 抽公共件：神经图与联动编辑器共用同一张正面剪影） */
+function drawBodySilhouette(svg){
+  const body = el('g', {fill:'#161b22', stroke:'#30363d', 'stroke-width':'1.5'}, svg);
+  el('ellipse', {cx:100, cy:40, rx:23, ry:27}, body);
+  el('path', {d:'M92 65 h16 v14 h-16 z'}, body);
+  el('path', {d:'M70 82 C58 92 57 116 60 145 C62 175 65 198 71 218 h58 C135 198 138 175 140 145 C143 116 142 92 130 82 Z'}, body);
+  el('path', {d:'M64 86 C50 108 44 152 40 192 L34 244 C33 254 36 260 41 259 C46 258 47 251 48 242 L55 198 C59 160 63 118 69 92 Z'}, body);
+  el('path', {d:'M136 86 C150 108 156 152 160 192 L166 244 C167 254 164 260 159 259 C154 258 153 251 152 242 L145 198 C141 160 137 118 131 92 Z'}, body);
+  el('path', {d:'M72 218 L66 305 L65 365 L67 420 h21 L97 365 L99 305 L97 218 Z'}, body);
+  el('path', {d:'M128 218 L134 305 L135 365 L133 420 h-21 L103 365 L101 305 L103 218 Z'}, body);
+  return body;
+}
+
+function renderBodyMap(){
+  const svg = document.getElementById('body-map');
+  if (!svg || !EDIT) return;
+  svg.innerHTML = '';
+  const defs = el('defs', {}, svg);
+  const mk = el('marker', {id:'arrow', viewBox:'0 0 10 10', refX:'9', refY:'5', markerWidth:'7', markerHeight:'7', orient:'auto-start-reverse'}, defs);
+  el('path', {d:'M0,0 L10,5 L0,10 z', fill:'#58a6fbaa'}, mk);
+  drawBodySilhouette(svg);
+  const byId = Object.fromEntries(EDIT.parts.map(p => [p.id, p]));
+  const idxOf = Object.fromEntries(EDIT.parts.map((p, i) => [p.id, i]));
+  const lines = el('g', {}, svg);
+  EDIT.parts.forEach((p, i) => {
+    const [x0, y0] = partPos(p, i);
+    for (const [rid, ratio] of Object.entries(p.radiate || {})){
+      if (!byId[rid] || !(+ratio > 0)) continue;
+      const [x1, y1] = partPos(byId[rid], idxOf[rid]);
+      const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy) || 1;
+      const ax = x0 + dx / len * 9, ay = y0 + dy / len * 9;
+      const bx = x1 - dx / len * 13, by = y1 - dy / len * 13;
+      el('line', {x1:ax, y1:ay, x2:bx, y2:by, stroke:'#58a6fbaa', 'stroke-width':1.4, 'marker-end':'url(#arrow)'}, lines);
+      el('text', {x:(ax+bx)/2 + 4, y:(ay+by)/2 - 3, fill:'#58a6ff', 'font-size':7, 'text-anchor':'middle'}, lines).textContent = Math.round(ratio * 100) + '%';
+    }
+  });
+  const nodes = el('g', {}, svg);
+  EDIT.parts.forEach((p, i) => {
+    const [x, y] = partPos(p, i);
+    const hue = sensHue(p.sens);
+    const g = el('g', {transform:`translate(${x},${y})`, style:'cursor:pointer'}, nodes);
+    if (i === MAP_SEL) el('circle', {r:12, fill:'none', stroke:'#58a6ff', 'stroke-width':1.6, 'stroke-dasharray':'3 2'}, g);
+    el('circle', {r:8, fill:`hsl(${hue},60%,${28 + (MAP_SEL === i ? 14 : 0)}%)`, stroke:`hsl(${hue},70%,60%)`, 'stroke-width':1.4}, g);
+    el('text', {y:-12, 'text-anchor':'middle', 'font-size':8.5, fill: MAP_SEL === i ? '#58a6ff' : '#c9d1d9'}, g).textContent = p.label || p.id;
+    g.addEventListener('pointerdown', (e) => {
+      MAP_SEL = i; MAP_DRAG = {i, moved:false};
+      try { g.setPointerCapture(e.pointerId); } catch {}
+      renderMapPanel(); renderBodyMap();
+      e.preventDefault();
+    });
+    g.addEventListener('pointermove', (e) => {
+      if (!MAP_DRAG || MAP_DRAG.i !== i) return;
+      const pt = svgPoint(e);
+      if (Math.hypot(pt.x - x, pt.y - y) > 2) MAP_DRAG.moved = true;
+      const nx = Math.max(6, Math.min(194, pt.x)), ny = Math.max(6, Math.min(454, pt.y));
+      EDIT.parts[i].viz = [Math.round(nx), Math.round(ny)];
+      g.setAttribute('transform', `translate(${nx},${ny})`);
+    });
+    g.addEventListener('pointerup', () => {
+      if (MAP_DRAG && MAP_DRAG.moved){ renderEditor(); }
+      MAP_DRAG = null;
+    });
+  });
+  renderMapPanel();
+}
+
+function svgPoint(e){
+  const svg = document.getElementById('body-map');
+  const r = svg.getBoundingClientRect();
+  return {x:(e.clientX - r.left) / r.width * 200, y:(e.clientY - r.top) / r.height * 460};
+}
+
+/* ---- 联动编辑器（0.28.1）：人体图点两个部位画传导线，滑条定倍率 ---- */
+let LINK_SRC = -1;   // 已点的源部位索引（-1=未选；点目标后弹倍率浮层）
+let LINK_POPUP = null, LINK_POPUP_OUTSIDE = null;
+
+function closeRatioPopup(){
+  if (LINK_POPUP_OUTSIDE){ document.removeEventListener('pointerdown', LINK_POPUP_OUTSIDE); LINK_POPUP_OUTSIDE = null; }
+  if (LINK_POPUP){ LINK_POPUP.remove(); LINK_POPUP = null; }
+}
+
+function showRatioPopup(srcId, dstId, ax, ay){
+  closeRatioPopup();
+  if (!EDIT) return;
+  const src = EDIT.parts.find(p => p.id === srcId), dst = EDIT.parts.find(p => p.id === dstId);
+  if (!src || !dst || src === dst) return;
+  const existing = +((src.radiate || {})[dst.id] || 0) || null;
+  const div = document.createElement('div');
+  div.style.cssText = `position:fixed;left:${Math.max(8, Math.min(window.innerWidth - 258, ax))}px;` +
+    `top:${Math.max(8, Math.min(window.innerHeight - 200, ay))}px;z-index:9999;background:#161b22;` +
+    `border:1px solid #1f6feb88;border-radius:8px;padding:12px;box-shadow:0 4px 18px #000a;width:242px`;
+  div.innerHTML = `
+    <div style="font-size:13px;color:#e6edf3;margin-bottom:2px">${esc(src.label || src.id)} <span style="color:#58a6ff">→</span> ${esc(dst.label || dst.id)}</div>
+    <div class="hint">传导倍率：刺激「${esc(src.label || src.id)}」时，「${esc(dst.label || dst.id)}」按此比例获得感知</div>
+    <div style="display:flex;align-items:center;gap:8px;margin:8px 0">
+      <input type="range" id="rp-slider" min="0.05" max="1" step="0.05" value="${existing ?? 0.3}" style="flex:1">
+      <b id="rp-val" style="min-width:38px;text-align:right;color:#58a6ff">×${existing ?? 0.3}</b>
+    </div>
+    <div style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap">
+      ${existing ? '<button class="rowbtn danger" id="rp-del">删除连线</button>' : ''}
+      <button class="rowbtn" id="rp-cancel">取消</button>
+      <button class="rowbtn" id="rp-ok" style="background:#1f6feb;color:#fff;border-color:#1f6feb">确认</button>
+    </div>`;
+  document.body.appendChild(div);
+  LINK_POPUP = div;
+  const slider = div.querySelector('#rp-slider'), val = div.querySelector('#rp-val');
+  slider.addEventListener('input', () => val.textContent = '×' + slider.value);
+  const finish = (act) => {
+    if (!LINK_POPUP) return;   // 幂等：确认/取消/点外多路触发只结算一次
+    closeRatioPopup();
+    LINK_SRC = -1;
+    if (act === 'ok'){
+      src.radiate = src.radiate || {};
+      src.radiate[dst.id] = parseFloat(slider.value);
+      renderEditor();
+      toast(`已连线 ${src.label || src.id} → ${dst.label || dst.id} ×${slider.value}——点「保存联动并热生效」落盘`);
+    } else if (act === 'del'){
+      if (src.radiate) delete src.radiate[dst.id];
+      renderEditor();
+      toast(`已删除连线 ${src.label || src.id} → ${dst.label || dst.id}（保存后生效）`);
+    } else {
+      renderLinkMap(); renderLinkPanel();   // 取消：清选中环即可
+    }
+  };
+  div.querySelector('#rp-ok').addEventListener('click', () => finish('ok'));
+  div.querySelector('#rp-cancel').addEventListener('click', () => finish('cancel'));
+  const delBtn = div.querySelector('#rp-del');
+  if (delBtn) delBtn.addEventListener('click', () => finish('del'));
+  setTimeout(() => {
+    if (!LINK_POPUP) return;
+    LINK_POPUP_OUTSIDE = (ev) => { if (LINK_POPUP && !LINK_POPUP.contains(ev.target)) finish('cancel'); };
+    document.addEventListener('pointerdown', LINK_POPUP_OUTSIDE);
+  }, 50);
+}
+
+function onLinkNodeClick(i, ev){
+  if (!EDIT || !EDIT.parts[i]) return;
+  const sel = (LINK_SRC >= 0 && LINK_SRC < EDIT.parts.length) ? LINK_SRC : -1;
+  if (sel === -1){
+    LINK_SRC = i;
+    renderLinkMap(); renderLinkPanel();
+    toast(`源部位：${EDIT.parts[i].label || EDIT.parts[i].id}——再点一个目标部位建立传导（再点它自己＝取消）`);
+    return;
+  }
+  if (sel === i){ LINK_SRC = -1; renderLinkMap(); renderLinkPanel(); return; }
+  showRatioPopup(EDIT.parts[sel].id, EDIT.parts[i].id, ev.clientX, ev.clientY);
+}
+
+/* ---- 动作词参数弹层（0.29.0）：方式/频率/速度/深度/温度/类别/冷却 全键可选，保存自动归一（纯默认回数字形态） ---- */
+let WORD_POPUP = null, WORD_POPUP_OUTSIDE = null;
+
+function closeWordPopup(){
+  if (WORD_POPUP_OUTSIDE){ document.removeEventListener('pointerdown', WORD_POPUP_OUTSIDE); WORD_POPUP_OUTSIDE = null; }
+  if (WORD_POPUP){ WORD_POPUP.remove(); WORD_POPUP = null; }
+}
+
+function showWordParamsPopup(word, ax, ay){
+  closeWordPopup();
+  if (!EDIT || EDIT.action_words[word] === undefined) return;
+  const cur = EDIT.action_words[word];
+  const src = wordIsParam(cur) ? cur : {s: wordVal(cur)};
+  const div = document.createElement('div');
+  div.style.cssText = `position:fixed;left:${Math.max(8, Math.min(window.innerWidth - 300, ax))}px;` +
+    `top:${Math.max(8, Math.min(window.innerHeight - 460, ay))}px;z-index:9999;background:#161b22;` +
+    `border:1px solid #1f6feb88;border-radius:8px;padding:12px;box-shadow:0 4px 18px #000a;width:284px;max-height:86vh;overflow:auto`;
+  div.innerHTML = `
+    <div style="font-size:13px;color:#e6edf3;margin-bottom:2px">动作词「${esc(word)}」参数</div>
+    <div class="hint">全键可选——不设即按词自动判定；存档时全默认自动回纯强度形态</div>
+    <div style="display:flex;align-items:center;gap:8px;margin:8px 0">
+      <span class="hint" style="width:64px">强度</span>
+      <input type="range" id="wp-s" min="0.05" max="1" step="0.05" value="${wordVal(cur)}" style="flex:1">
+      <b id="wp-s-val" style="min-width:30px;text-align:right;color:#58a6ff">${wordVal(cur)}</b>
+    </div>
+    <div style="display:flex;gap:8px;margin:6px 0;align-items:center">
+      <span class="hint" style="width:64px">方式</span>
+      <select id="wp-method" style="flex:1">
+        <option value="">自动（按词判定）</option>
+        <option value="stroke"${src.method === 'stroke' ? ' selected' : ''}>抚摸</option>
+        <option value="press"${src.method === 'press' ? ' selected' : ''}>按压</option>
+        <option value="rub"${src.method === 'rub' ? ' selected' : ''}>揉搓</option>
+        <option value="tap"${src.method === 'tap' ? ' selected' : ''}>拍打</option>
+        <option value="blow"${src.method === 'blow' ? ' selected' : ''}>吹气</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;margin:6px 0;align-items:center">
+      <span class="hint" style="width:64px">类别</span>
+      <select id="wp-type" style="flex:1">
+        <option value="touch"${(!src.type || src.type === 'touch') ? ' selected' : ''}>普通触碰（默认）</option>
+        <option value="pain"${src.type === 'pain' ? ' selected' : ''}>痛感（低敏部位不钝感）</option>
+        <option value="temp"${src.type === 'temp' ? ' selected' : ''}>温度（受材质凉感/保温放大）</option>
+        <option value="air"${src.type === 'air' ? ' selected' : ''}>气流（裸露部位更强）</option>
+        <option value="constrain"${src.type === 'constrain' ? ' selected' : ''}>束缚</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;margin:6px 0;align-items:center">
+      <span class="hint" style="width:64px">冷却秒</span>
+      <input type="number" id="wp-cd" min="0" max="3600" step="5" value="${+src.cooldown_s || 0}" style="width:80px">
+      <span class="hint">冷却内再命中增益减半</span>
+    </div>
+    <div class="hint" style="margin:8px 0 2px">材质层取样参数（勾选才生效）：</div>
+    ${[['freq_hz', '频率 Hz', 0, 500, 5, 20], ['speed_cm_s', '速度 cm/s', 0.5, 80, 0.5, 5],
+       ['depth', '压深', 0, 1, 0.05, 0.5], ['temp_c', '温度 °C', 0, 60, 1, 32]].map(([k, label, lo, hi, step, dflt]) => `
+    <div style="display:flex;align-items:center;gap:6px;margin:4px 0">
+      <label style="width:96px;font-size:11px;color:#8b949e"><input type="checkbox" id="wp-on-${k}"${src[k] !== undefined ? ' checked' : ''}> ${label}</label>
+      <input type="range" id="wp-${k}" min="${lo}" max="${hi}" step="${step}" value="${src[k] !== undefined ? +src[k] : dflt}" style="flex:1;min-width:70px">
+      <b id="wp-${k}-val" style="min-width:30px;text-align:right;color:#58a6ff;font-size:11px">${src[k] !== undefined ? +src[k] : dflt}</b>
+    </div>`).join('')}
+    <div style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px">
+      <button class="rowbtn" id="wp-reset">重置为纯强度</button>
+      <button class="rowbtn" id="wp-cancel">取消</button>
+      <button class="rowbtn" id="wp-ok" style="background:#1f6feb;color:#fff;border-color:#1f6feb">保存</button>
+    </div>`;
+  document.body.appendChild(div);
+  WORD_POPUP = div;
+  const bindSlider = k => {
+    const slider = div.querySelector(`#wp-${k}`), out = div.querySelector(`#wp-${k}-val`);
+    if (slider && out) slider.addEventListener('input', () => { out.textContent = slider.value; });
+  };
+  bindSlider('s'); bindSlider('freq_hz'); bindSlider('speed_cm_s'); bindSlider('depth'); bindSlider('temp_c');
+  const finish = (act) => {
+    if (!WORD_POPUP) return;   // 幂等：保存/取消/点外/重置多路触发只结算一次
+    const params = {};
+    if (act === 'ok'){
+      const methodEl = div.querySelector('#wp-method');
+      if (methodEl.value) params.method = methodEl.value;
+      const typeEl = div.querySelector('#wp-type');
+      if (typeEl.value && typeEl.value !== 'touch') params.type = typeEl.value;
+      const cd = Math.max(0, Math.min(3600, parseFloat(div.querySelector('#wp-cd').value) || 0));
+      if (cd > 0) params.cooldown_s = cd;
+      for (const k of ['freq_hz', 'speed_cm_s', 'depth', 'temp_c']){
+        if (div.querySelector(`#wp-on-${k}`).checked) params[k] = +div.querySelector(`#wp-${k}`).value;
+      }
+    }
+    closeWordPopup();
+    if (act === 'reset'){
+      EDIT.action_words[word] = wordVal(cur);
+      renderEditor();
+      toast(`动作词「${word}」已重置为纯强度 ${wordVal(cur)}`);
+    } else if (act === 'ok'){
+      const s = Math.max(0.05, Math.min(1, parseFloat(div.dataset.sval) || wordVal(cur)));
+      EDIT.action_words[word] = canonicalWordVal(s, params);
+      renderEditor();
+      const pTxt = wordIsParam(EDIT.action_words[word]) ? `（带参数：${wordSummary(EDIT.action_words[word])}）` : '';
+      toast(`动作词「${word}」参数已保存${pTxt}——点顶部"保存并热生效"落盘`);
+    }
+  };
+  div.querySelector('#wp-s').addEventListener('input', () => { div.dataset.sval = div.querySelector('#wp-s').value; });
+  div.dataset.sval = wordVal(cur);
+  div.querySelector('#wp-ok').addEventListener('click', () => finish('ok'));
+  div.querySelector('#wp-cancel').addEventListener('click', () => finish('cancel'));
+  div.querySelector('#wp-reset').addEventListener('click', () => finish('reset'));
+  setTimeout(() => {
+    if (!WORD_POPUP) return;
+    WORD_POPUP_OUTSIDE = (ev) => { if (WORD_POPUP && !WORD_POPUP.contains(ev.target)) finish('cancel'); };
+    document.addEventListener('pointerdown', WORD_POPUP_OUTSIDE);
+  }, 50);
+}
+
+function renderLinkMap(){
+  const svg = document.getElementById('link-map');
+  if (!svg || !EDIT) return;
+  svg.innerHTML = '';
+  const defs = el('defs', {}, svg);
+  const mk = el('marker', {id:'lk-arrow', viewBox:'0 0 10 10', refX:'9', refY:'5', markerWidth:'7', markerHeight:'7', orient:'auto-start-reverse'}, defs);
+  el('path', {d:'M0,0 L10,5 L0,10 z', fill:'#58a6fbaa'}, mk);
+  drawBodySilhouette(svg);
+  const sel = (LINK_SRC >= 0 && LINK_SRC < EDIT.parts.length) ? LINK_SRC : -1;
+  const byId = Object.fromEntries(EDIT.parts.map(p => [p.id, p]));
+  const idxOf = Object.fromEntries(EDIT.parts.map((p, i) => [p.id, i]));
+  const lines = el('g', {}, svg);
+  EDIT.parts.forEach((p, i) => {
+    const [x0, y0] = partPos(p, i);
+    for (const [rid, ratio] of Object.entries(p.radiate || {})){
+      if (!byId[rid] || !(+ratio > 0)) continue;
+      const j = idxOf[rid];
+      const [x1, y1] = partPos(byId[rid], j);
+      const bidir = +((byId[rid].radiate || {})[p.id] || 0) > 0;   // 双向传导：紫色
+      const stroke = bidir ? '#bc8cff' : '#58a6ff';
+      const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy) || 1;
+      const ax = x0 + dx / len * 9, ay = y0 + dy / len * 9;
+      const bx = x1 - dx / len * 13, by = y1 - dy / len * 13;
+      const openEdit = (ev) => { ev.stopPropagation(); showRatioPopup(p.id, rid, ev.clientX, ev.clientY); };
+      const fat = el('line', {x1:ax, y1:ay, x2:bx, y2:by, stroke:'transparent', 'stroke-width':10, style:'cursor:pointer'}, lines);
+      fat.addEventListener('click', openEdit);   // 加宽命中区：细线也容易点中
+      const vis = el('line', {x1:ax, y1:ay, x2:bx, y2:by, stroke, 'stroke-width': bidir ? 2.2 : 1.5, 'marker-end':'url(#lk-arrow)', style:'cursor:pointer'}, lines);
+      vis.addEventListener('click', openEdit);   // 点已有连线＝改倍率/删除
+      el('text', {x:(ax + bx) / 2 + 4, y:(ay + by) / 2 - 3, fill: stroke, 'font-size':7, 'text-anchor':'middle'}, lines).textContent = Math.round(ratio * 100) + '%';
+    }
+  });
+  const nodes = el('g', {}, svg);
+  EDIT.parts.forEach((p, i) => {
+    const [x, y] = partPos(p, i);
+    const hue = sensHue(p.sens);
+    const g = el('g', {transform:`translate(${x},${y})`, style:'cursor:pointer'}, nodes);
+    if (i === sel) el('circle', {r:13, fill:'none', stroke:'#3fb950', 'stroke-width':1.8, 'stroke-dasharray':'3 2'}, g);
+    el('circle', {r:8, fill:`hsl(${hue},60%,${28 + (sel === i ? 14 : 0)}%)`, stroke:`hsl(${hue},70%,60%)`, 'stroke-width':1.4}, g);
+    el('text', {y:-12, 'text-anchor':'middle', 'font-size':8.5, fill: sel === i ? '#3fb950' : '#c9d1d9'}, g).textContent = p.label || p.id;
+    g.addEventListener('click', (ev) => { ev.stopPropagation(); onLinkNodeClick(i, ev); });
+  });
+}
+
+function renderLinkPanel(){
+  const panel = document.getElementById('link-panel');
+  if (!panel || !EDIT) return;
+  const sel = (LINK_SRC >= 0 && LINK_SRC < EDIT.parts.length) ? LINK_SRC : -1;
+  if (sel === -1){
+    panel.innerHTML = `<div style="font-size:12px;color:#8b949e;line-height:1.9">
+      <b style="color:#c9d1d9">三步画一条传导线：</b><br>
+      ① 点源部位（如 耳尖）→ ② 点目标部位（如 尾根）→ ③ 拉倍率确认。<br>
+      点已有连线可改倍率或删除；<span style="color:#bc8cff">紫色</span>＝双向传导，<span style="color:#58a6ff">蓝色</span>＝单向。</div>`;
+    return;
+  }
+  const p = EDIT.parts[sel];
+  const edges = Object.entries(p.radiate || {}).filter(([r, v]) => +v > 0 && EDIT.parts.some(q => q.id === r));
+  panel.innerHTML = `
+    <div style="font-size:13px;color:#e6edf3;margin-bottom:6px">源部位：<b style="color:#3fb950">${esc(p.label || p.id)}</b>——再点一个目标部位</div>
+    ${edges.length
+      ? '<div class="hint">它现有的传导（点图上对应连线可改）：</div>' + edges.map(([r, v]) =>
+          `<div class="hint" style="margin:2px 0">→ ${esc(partLabel(r))} ×${v}</div>`).join('')
+      : '<div class="hint">它还没有传导线——点一个目标部位开始。</div>'}
+    <button class="rowbtn" style="margin-top:8px" data-action="link-cancel-src">取消选择</button>`;
+}
+
+/* 传导规则（自定义联动算法）：跳数/模式随保存写入 profile.params */
+function renderLinkRules(){
+  const h = document.getElementById('lk-hops'), m = document.getElementById('lk-mode');
+  if (!h || !m || !EDIT) return;
+  h.value = String(linkHops());
+  m.value = linkMode();
+}
+function onLinkRuleChange(){
+  if (!EDIT) return;
+  EDIT.params = (EDIT.params && typeof EDIT.params === 'object' && !Array.isArray(EDIT.params)) ? EDIT.params : {};
+  const h = document.getElementById('lk-hops').value;
+  const m = document.getElementById('lk-mode').value;
+  if (h === '2') delete EDIT.params.radiate_hops; else EDIT.params.radiate_hops = +h;   // 默认值不落键（留空=默认惯例）
+  if (m === 'mul') delete EDIT.params.radiate_mode; else EDIT.params.radiate_mode = 'sum';
+  PARAMS_DIRTY = true;
+  renderParamsTable();
+  renderLinkMap();
+  renderLinkPreview();
+  renderRadiatePreview();
+  toast('传导规则已记录——点「保存联动并热生效」落盘');
+}
+
+/* 联动预览文字版：耳尖→尾根 0.3→腰 0.06 链式描述（mul 模式回溯最强路径，sum 给合计值）。
+   0.29.0 示例乘数：事件带材质/方式时，链式数值按 材质×方式 乘数放大——
+   "耳尖 揉搓×0.9 → 尾根 0.27"（乘数由后端 curve 端点采样，页面零公式复制） */
+let LP_MATS = null;                 // 示例材质清单（null=未加载；[] = 加载失败回无材质）
+const LP_GAIN_CACHE = new Map();    // `${mat}|${method}|${sens}` → 乘数（null=采样失败）
+const LP_METHOD_DEFAULT_X = {stroke: 5, press: 0.4, rub: 8, tap: 200, blow: 33};   // 各方式取样点（core 默认参数同锚）
+
+async function ensureLpMats(){
+  if (LP_MATS !== null) return;
+  try{
+    const data = await apiGet('page/materials');
+    LP_MATS = (data.materials || []).map(m => ({id: m.id, label: m.label}));
+  }catch(e){ LP_MATS = []; }
+  const sel = document.getElementById('lp-material');
+  if (sel) sel.innerHTML = '<option value="">无材质（原值）</option>' +
+    LP_MATS.map(m => `<option value="${esc(m.id)}">${esc(m.label)}</option>`).join('');
+}
+
+async function lpSampleGain(matId, method, sens){
+  const key = `${matId}|${method}|${sens}`;
+  if (LP_GAIN_CACHE.has(key)) return LP_GAIN_CACHE.get(key);
+  try{
+    const data = await apiPost('page/materials/curve', {part_sens: sens, material_ids: [matId], method, points: 24});
+    const want = LP_METHOD_DEFAULT_X[method] ?? 0;
+    let best = null;
+    for (const p of (data.curves[0].points || [])){
+      if (!best || Math.abs(p.x - want) < Math.abs(best.x - want)) best = p;
+    }
+    const g = best ? best.gain : null;
+    LP_GAIN_CACHE.set(key, g);
+    return g;
+  }catch(e){
+    LP_GAIN_CACHE.set(key, null);
+    return null;
+  }
+}
+
+function lpMethodTag(g){
+  const sel = document.getElementById('lp-method');
+  const cn = WORD_METHOD_CN[sel ? sel.value : 'rub'] || '';
+  return `${cn}×${Math.round(g * 100) / 100}`;
+}
+
+function linkPreviewLines(gains){
+  if (!EDIT) return [];
+  const byId = Object.fromEntries(EDIT.parts.map(p => [p.id, p]));
+  const lines = [];
+  for (const p of EDIT.parts){
+    const {best, pred} = radiateMapOf(p.id);
+    const targets = Object.keys(best).sort((a, b) => best[b] - best[a]);
+    const g = gains ? (gains[p.id] ?? null) : null;   // 源部位示例乘数（按其 sens 采样）
+    for (const rid of targets){
+      if (linkMode() === 'sum'){
+        lines.push(`${partLabel(p.id)}${g !== null ? ' ' + lpMethodTag(g) : ''}→${partLabel(rid)} 合计 ${Math.round(best[rid] * (g ?? 1) * 100) / 100}`);
+        continue;
+      }
+      const path = [rid];   // 回溯最强路径的中间节点
+      let cur = rid;
+      while (pred[cur] && pred[cur] !== p.id){ cur = pred[cur]; path.unshift(cur); }
+      let node = p.id, cum = 1;
+      const segs = [partLabel(p.id) + (g !== null ? ' ' + lpMethodTag(g) : '')];
+      for (const nid of path){
+        const r = +(((byId[node] || {}).radiate || {})[nid] || 0);
+        cum = Math.min(1, cum * r);
+        segs.push(`${partLabel(nid)} ${Math.round(cum * (g ?? 1) * 100) / 100}`);
+        node = nid;
+      }
+      lines.push(segs.join('→'));
+    }
+  }
+  return lines;
+}
+
+let LP_SEQ = 0;
+async function renderLinkPreview(){
+  const box = document.getElementById('link-preview');
+  if (!box || !EDIT) return;
+  const seq = ++LP_SEQ;
+  await ensureLpMats();
+  if (seq !== LP_SEQ) return;   // 过期渲染丢弃（快速切换控件时防串线）
+  const mSel = document.getElementById('lp-material');
+  const meSel = document.getElementById('lp-method');
+  const matId = mSel ? mSel.value : '';
+  const method = meSel ? (meSel.value || 'rub') : 'rub';
+  let gains = null, note = '';
+  if (matId){
+    const sensOf = {};
+    for (const p of EDIT.parts) sensOf[p.id] = Math.round(+p.sens || 0);
+    gains = {};
+    await Promise.all([...new Set(Object.values(sensOf))].map(async s => {
+      const g = await lpSampleGain(matId, method, s);
+      if (g !== null && g !== undefined){
+        for (const pid of Object.keys(sensOf)) if (sensOf[pid] === s) gains[pid] = g;
+      }
+    }));
+    if (seq !== LP_SEQ) return;
+    const matLabel = ((LP_MATS || []).find(m => m.id === matId) || {}).label || matId;
+    note = gains && Object.keys(gains).length
+      ? `<div style="margin-bottom:4px;color:#58a6ff">示例：${esc(matLabel)}·${esc(WORD_METHOD_CN[method] || method)}——乘数已乘入链式数值（按各源部位敏感度采样，近似示意）</div>`
+      : '';
+    if (!gains || !Object.keys(gains).length) gains = null;
+  }
+  const lines = linkPreviewLines(gains);
+  box.innerHTML = (note || '') + (lines.length
+    ? '<div style="line-height:1.8;color:#8b949e;font-size:12px">' + lines.slice(0, 60).map(l => `· ${esc(l)}`).join('<br>') +
+      (lines.length > 60 ? `<br>… 共 ${lines.length} 条` : '') + '</div>'
+    : '<span class="hint">还没有传导连线——在上面的图上点两个部位画第一条（如 耳尖→尾根）</span>');
+}
+function copyLinkPreview(){
+  const lines = linkPreviewLines();
+  if (!lines.length){ toast('暂无联动可复制', true); return; }
+  const head = `【神经联动】摸源部位时，箭头后的部位按比例获得感知（最大 ${linkHops()} 跳，${linkMode() === 'sum' ? '多路径求和' : '多路径取最强'}）`;
+  navigator.clipboard.writeText(head + '\n' + lines.join('\n'))
+    .then(() => toast('已复制联动预览文字'), () => toast('复制失败，请手动选择', true));
+}
+
+function renderMapPanel(){
+  const panel = document.getElementById('map-panel');
+  if (!panel) return;
+  const p = MAP_SEL >= 0 && EDIT && EDIT.parts[MAP_SEL];
+  if (!p){ panel.innerHTML = '<span class="hint">点击图上的部位节点编辑参数；双击人体空白区新增部位；节点可拖拽定位（位置随保存持久化）。</span>'; return; }
+  const hue = sensHue(p.sens);
+  const chains = Object.entries(p.radiate || {}).filter(([r]) => EDIT.parts.some(q => q.id === r))
+    .map(([r, v]) => `${r}:${v}`).join(',');
+  panel.innerHTML = `
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:hsl(${hue},60%,38%);border:1px solid hsl(${hue},70%,60%)"></span>
+        <b>${esc(p.label || '')}</b><span class="hint">${esc(p.id)}</span>
+        <span style="margin-left:auto">
+          <button class="rowbtn" data-action="mappart-mirror" title="镜像复制到对侧（左右对称部位）">镜像复制</button>
+          <button class="rowbtn danger" data-action="mappart-del">删除部位</button>
+        </span>
+      </div>
+      <table>
+        <tr><td style="width:80px">敏感度</td><td>
+          <input type="range" min="1" max="10" step="1" value="${Math.round(+p.sens || 5)}" data-mp="sens" style="width:140px;vertical-align:middle">
+          <span style="font-size:11px;color:#8b949e;margin-left:6px">${esc(p.sens)}·${esc(sensName(p.sens))}｜系数 ${(0.6 + 0.04 * (+p.sens || 0)).toFixed(2)}</span></td></tr>
+        <tr><td>名称</td><td><input value="${esc(p.label)}" data-mp="label" style="width:100%"></td></tr>
+        <tr><td>τ 半衰秒</td><td><input value="${esc(p.half_life)}" data-mp="half_life" style="width:100px"></td></tr>
+        <tr><td>深度 z</td><td>
+          <input type="range" min="-40" max="40" step="2" value="${Array.isArray(p.viz) && p.viz.length > 2 ? Math.round(+p.viz[2]) : 14}" data-mp="depth" style="width:120px;vertical-align:middle">
+          <span style="font-size:11px;color:#8b949e;margin-left:6px">${Array.isArray(p.viz) && p.viz.length > 2 ? Math.round(+p.viz[2]) : 14}（正=体前，负=体后）</span></td></tr>
+        <tr><td>别名</td><td><input value="${esc((p.aliases || []).join(','))}" data-mp="aliases" style="width:100%" placeholder="逗号分隔"></td></tr>
+        <tr><td>传导链</td><td><input value="${esc(chains)}" data-mp="radiate" style="width:100%" placeholder="目标id:倍率,目标2:倍率2"></td></tr>
+      </table>
+      <p class="hint">改动即写入编辑副本——点顶部"保存并热生效"落盘。</p>
+    </div>`;
+  panel.querySelectorAll('input[data-mp]').forEach(inp => inp.addEventListener('change', () => {
+    const k = inp.dataset.mp;
+    if (k === 'sens') p.sens = parseInt(inp.value, 10) || 5;
+    else if (k === 'depth'){
+      const z = parseInt(inp.value, 10) || 0;
+      const pos = Array.isArray(p.viz) && p.viz.length >= 2 ? p.viz : [...partPos(p, MAP_SEL), 14];
+      p.viz = [pos[0], pos[1], z];
+    }
+    else if (k === 'half_life') p.half_life = parseFloat(inp.value) || 120;
+    else if (k === 'label') p.label = inp.value.trim() || p.id;
+    else if (k === 'aliases') p.aliases = inp.value.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+    else if (k === 'radiate'){
+      const r = {};
+      inp.value.split(/[,，]/).map(s => s.trim()).filter(Boolean).forEach(item => {
+        const [rid, ratio] = item.split(':');
+        if (rid && ratio) r[rid.trim()] = parseFloat(ratio) || 0;
+      });
+      p.radiate = r;
+    }
+    renderEditor();
+  }));
+}
+
+/* 人体图删除/镜像按钮（两步确认用于删除） */
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-action="mappart-del"], [data-action="mappart-mirror"]');
+  if (!btn) return;
+  const act = btn.dataset.action;
+  if (act === 'mappart-mirror'){
+    const p = MAP_SEL >= 0 && EDIT.parts[MAP_SEL];
+    if (!p) return;
+    const srcPos = Array.isArray(p.viz) && p.viz.length >= 2 ? p.viz : [...partPos(p, MAP_SEL)];
+    const mirrorViz = [Math.max(4, Math.min(196, Math.round(200 - srcPos[0]))), srcPos[1], ...(srcPos.length > 2 ? [srcPos[2]] : [])];
+    const newId = await slugLabel(p.label + '右', EDIT.parts);
+    EDIT.parts.push({...JSON.parse(JSON.stringify(p)), id: newId, label: p.label + '·右', viz: mirrorViz, radiate: {}, _new: true});
+    MAP_SEL = EDIT.parts.length - 1;
+    renderEditor();
+    toast(`已镜像复制为「${p.label}·右」(id: ${newId})——拖到对侧微调`);
+    return;
+  }
+  if (btn.dataset.armed !== '1'){
+    btn.dataset.armed = '1'; btn.textContent = '再点一次确认删除'; btn.classList.add('danger-armed');
+    setTimeout(() => { if (btn.isConnected && btn.dataset.armed === '1'){ btn.dataset.armed = ''; btn.textContent = '删除部位'; btn.classList.remove('danger-armed'); } }, 4000);
+    return;
+  }
+  if (MAP_SEL >= 0 && EDIT.parts[MAP_SEL]){ EDIT.parts.splice(MAP_SEL, 1); MAP_SEL = -1; renderEditor(); toast('已删除（保存后生效）'); }
+});
+
+/* ---- 3D 人体视图（three.js CDN 懒加载，失败回退 2D）----
+   程序化网格：头/颈/躯干/臂/腿，身高 ~1.75 单位；部位 viz [x,y,(z)]：
+   x,y 为 2D 图坐标（0-200/0-460），z 为可选深度（正=体前）。 */
+let T3 = null;   // {scene,camera,renderer,group,bodyMeshes,nodeGroup,rotX,rotY,dist,dirty}
+const THREE_CDN = 'https://unpkg.com/three@0.160.0/build/three.min.js';
+
+function vizTo3D(viz){
+  const x = +viz[0], y = +viz[1];
+  const z = viz.length > 2 ? +viz[2] / 100 : 0.14;   // 缺省放体表前侧
+  return {x:(x - 100) / 100 * 0.40, y:(460 - y) / 460 * 1.78 - 0.06, z};
+}
+function posToViz(p){
+  return [Math.round(p.x / 0.40 * 100 + 100), Math.round((0.06 + p.y) / 1.78 * 460), Math.round(p.z * 100)];
+}
+
+function loadThree(){
+  if (window.THREE) return Promise.resolve();
+  if (loadThree._p) return loadThree._p;
+  loadThree._p = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = THREE_CDN;
+    s.onload = () => res();
+    s.onerror = () => rej(new Error('three.js CDN 加载失败（离线环境请用 2D 视图）'));
+    document.head.appendChild(s);
+  });
+  return loadThree._p;
+}
+
+async function toggle3D(){
+  const box3d = document.getElementById('body-3d');
+  const svg = document.getElementById('body-map');
+  const hint = document.getElementById('map-3d-hint');
+  if (box3d.style.display === 'none'){
+    try{
+      await loadThree();
+      if (!T3) init3D(box3d);
+      box3d.style.display = ''; svg.style.display = 'none'; hint.style.display = '';
+      document.getElementById('btn-3d').textContent = '切换 2D 视图';
+      render3D();
+    }catch(e){ toast(String(e.message || e), true); }
+  }else{
+    box3d.style.display = 'none'; svg.style.display = ''; hint.style.display = 'none';
+    document.getElementById('btn-3d').textContent = '切换 3D 视图';
+    renderBodyMap();   // 2D 重画同步最新 viz
+  }
+}
+
+function init3D(box){
+  const w = box.clientWidth || 250, h = box.clientHeight || 575;
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(38, w / h, 0.05, 20);
+  camera.position.set(0, 0.85, 2.6);
+  const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+  renderer.setSize(w, h);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  box.appendChild(renderer.domElement);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+  const dl = new THREE.DirectionalLight(0xffffff, 0.9); dl.position.set(1.5, 2.5, 2); scene.add(dl);
+  const group = new THREE.Group(); scene.add(group);
+  // 程序化人体（半透明皮肤 + 线框叠加）
+  const bodyMat = new THREE.MeshStandardMaterial({color:0xc98d74, transparent:true, opacity:0.24, depthWrite:false, roughness:0.7});
+  const wireMat = new THREE.MeshBasicMaterial({color:0x58a6ff, wireframe:true, transparent:true, opacity:0.10});
+  const bodyMeshes = [];
+  const addBody = (geom, x, y, z, rx, rz) => {
+    const m = new THREE.Mesh(geom, bodyMat);
+    m.position.set(x, y, z);
+    if (rx) m.rotation.x = rx;
+    if (rz) m.rotation.z = rz;
+    group.add(m); bodyMeshes.push(m);
+    const w = new THREE.Mesh(geom, wireMat);
+    w.position.copy(m.position); w.rotation.copy(m.rotation); w.scale.setScalar(1.003);
+    group.add(w);
+  };
+  addBody(new THREE.SphereGeometry(0.16, 24, 18), 0, 1.58, 0);
+  addBody(new THREE.CylinderGeometry(0.055, 0.065, 0.12, 14), 0, 1.42, 0);
+  addBody(new THREE.SphereGeometry(0.105, 14, 12), -0.295, 1.315, 0);   // 肩球（提高射线覆盖）
+  addBody(new THREE.SphereGeometry(0.105, 14, 12), 0.295, 1.315, 0);
+  addBody(new THREE.CylinderGeometry(0.23, 0.175, 0.48, 20), 0, 1.10, 0);
+  addBody(new THREE.CylinderGeometry(0.175, 0.21, 0.36, 20), 0, 0.68, 0);
+  addBody(new THREE.SphereGeometry(0.125, 14, 12), -0.10, 0.50, 0);     // 髋球
+  addBody(new THREE.SphereGeometry(0.125, 14, 12), 0.10, 0.50, 0);
+  const perineum = new THREE.Mesh(new THREE.SphereGeometry(0.11, 24, 18), bodyMat);   // 骨盆底（会阴区几何）
+  perineum.scale.set(1.3, 0.8, 0.9);
+  perineum.position.set(0, 0.43, 0);
+  group.add(perineum); bodyMeshes.push(perineum);
+  const perW = new THREE.Mesh(perineum.geometry, wireMat);
+  perW.scale.copy(perineum.scale); perW.position.copy(perineum.position); perW.scale.multiplyScalar(1.003);
+  group.add(perW);
+  addBody(new THREE.CylinderGeometry(0.052, 0.042, 0.62, 12), -0.33, 1.05, 0, 0, 0.42);
+  addBody(new THREE.CylinderGeometry(0.052, 0.042, 0.62, 12), 0.33, 1.05, 0, 0, -0.42);
+  addBody(new THREE.SphereGeometry(0.052, 12, 10), -0.455, 0.72, 0.02);
+  addBody(new THREE.SphereGeometry(0.052, 12, 10), 0.455, 0.72, 0.02);
+  addBody(new THREE.CylinderGeometry(0.088, 0.06, 0.86, 14), -0.115, 0.28, 0);
+  addBody(new THREE.CylinderGeometry(0.088, 0.06, 0.86, 14), 0.115, 0.28, 0);
+  addBody(new THREE.BoxGeometry(0.09, 0.05, 0.22), -0.115, -0.185, 0.06);
+  addBody(new THREE.BoxGeometry(0.09, 0.05, 0.22), 0.115, -0.185, 0.06);
+  // 皮节参考线（C4 锁骨/T4 乳头/T10 脐/L1 腹股沟——神经学数据，StatPearls/Kenhub）
+  const ringMat = new THREE.LineBasicMaterial({color:0x3fb950, transparent:true, opacity:0.5});
+  [[1.28, 'C4'], [1.02, 'T4'], [0.70, 'T10'], [0.52, 'L1']].forEach(([y]) => {
+    const r = 0.23;
+    const pts = [];
+    for (let i = 0; i <= 40; i++){
+      const a = i / 40 * Math.PI * 2;
+      pts.push(new THREE.Vector3(Math.cos(a) * r, y, Math.sin(a) * r));
+    }
+    group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), ringMat));
+  });
+  const nodeGroup = new THREE.Group(); group.add(nodeGroup);
+  T3 = {scene, camera, renderer, group, bodyMeshes, nodeGroup, rotX:0, rotY:0, dist:2.6, dirty:true, spheres:[]};
+  bind3DControls(box);
+  const loop = () => {
+    if (!T3){ return; }
+    if (T3.dirty){
+      T3.group.rotation.y = T3.rotY;
+      T3.group.rotation.x = T3.rotX;
+      T3.camera.position.z = T3.dist;
+      T3.renderer.render(T3.scene, T3.camera);
+      T3.dirty = false;
+    }
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+}
+
+function bind3DControls(box){
+  let down = null;
+  let dragNode = null;   // 3D 节点自由拖拽：相机平行平面求交更新 viz
+  box.addEventListener('pointerdown', (e) => {
+    if (!T3) return;
+    const hitS = T3.spheres.length ? raycast3D(e, T3.spheres.map(s => s.mesh)) : null;
+    const i = hitS && hitS.object ? hitS.object.userData.i : null;
+    if (i !== null && i >= 0){
+      const mesh = T3.spheres.find(s => s.i === i);
+      const worldPos = mesh ? mesh.mesh.getWorldPosition(new THREE.Vector3()) : hitS.object.getWorldPosition(new THREE.Vector3());
+      const camDir = new THREE.Vector3();
+      T3.camera.getWorldDirection(camDir);
+      const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(camDir, worldPos);
+      dragNode = {i, plane};
+      MAP_SEL = i;
+      renderMapPanel();
+      box.setPointerCapture(e.pointerId);
+      down = null;
+      e.preventDefault();
+      return;
+    }
+    down = {x:e.clientX, y:e.clientY, moved:false};
+    box.setPointerCapture(e.pointerId);
+  });
+  box.addEventListener('pointermove', (e) => {
+    if (dragNode){
+      const ray = raycast3D(e, null);
+      const pt = new THREE.Vector3();
+      if (ray.ray.intersectPlane(dragNode.plane, pt)){
+        const local = T3.group.worldToLocal(pt.clone());
+        local.y = Math.max(-0.2, Math.min(1.75, local.y));
+        const horiz = Math.hypot(local.x, local.z);
+        if (horiz > 0.6){ local.x *= 0.6 / horiz; local.z *= 0.6 / horiz; }
+        EDIT.parts[dragNode.i].viz = posToViz(local);
+        const mesh = T3.spheres.find(s => s.i === dragNode.i);
+        if (mesh) mesh.mesh.position.copy(local);
+      }
+      return;
+    }
+    if (!down) return;
+    const dx = e.clientX - down.x, dy = e.clientY - down.y;
+    if (Math.abs(dx) + Math.abs(dy) > 3) down.moved = true;
+    if (down.moved){
+      T3.rotY += dx * 0.011;
+      T3.rotX = Math.max(-1.2, Math.min(1.2, T3.rotX + dy * 0.008));
+      down.x = e.clientX; down.y = e.clientY;
+      T3.dirty = true;
+    }
+  });
+  box.addEventListener('pointerup', () => {
+    if (dragNode){ dragNode = null; renderEditor(); toast('位置已更新（保存后持久化）'); }
+    down = null;
+  });
+  box.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    T3.dist = Math.max(1.2, Math.min(4.5, T3.dist + e.deltaY * 0.0016));
+    T3.dirty = true;
+  }, {passive:false});
+  box.addEventListener('dblclick', async (e) => {
+    if (!EDIT || !T3) return;
+    const hit = raycast3D(e, T3.bodyMeshes);
+    const worldPt = hit ? hit.point : snapToBodySurface(raycast3D(e, null).ray);   // 未命中→吸附体表
+    const local = T3.group.worldToLocal(worldPt.clone());
+    const viz = posToViz(local);
+    showNameBubble(e.clientX, e.clientY, viz, async (label, preset) => {
+      const id = preset ? preset.id : await slugLabel(label, EDIT.parts);
+      EDIT.parts.push({id, label, sens: preset ? preset.sens : 5, half_life: preset ? preset.hl : 1200,
+        aliases: preset ? [label] : [], radiate:{}, viz, _new:true});
+      MAP_SEL = EDIT.parts.length - 1;
+      renderEditor();
+      toast(`已添加「${label}」(id: ${id})`);
+    });
+  });
+}
+
+function raycast3D(e, meshes){
+  const box = document.getElementById('body-3d');
+  const r = box.getBoundingClientRect();
+  const ndc = new THREE.Vector2((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  T3.ray = T3.ray || new THREE.Raycaster();
+  T3.ray.setFromCamera(ndc, T3.camera);
+  if (!meshes) return T3.ray;
+  const hits = T3.ray.intersectObjects(meshes, false);
+  return hits[0] || null;
+}
+
+/* 自由落点：射线未打中网格时，吸附到人体中轴圆柱的最近体表点——
+   点击视锥内任何位置都有合理落点，不依赖预制几何的形状精度 */
+function bodyRadiusAt(y){
+  if (y > 1.44) return 0.16;      // 头
+  if (y > 1.34) return 0.075;     // 颈
+  if (y > 0.52) return 0.225;     // 躯干
+  if (y > 0.46) return 0.15;      // 骨盆底段（会阴区：两腿间收窄，落点吸附更准）
+  if (y > -0.16) return 0.095;    // 腿
+  return 0.06;
+}
+function snapToBodySurface(ray){
+  // 射线到中轴竖线（x=0,z=0）的最近参数：把问题降到 (x,z) 平面
+  const o = ray.origin, d = ray.direction;
+  const ox = o.x, oz = o.z, dx = d.x, dz = d.z;
+  const a = dx * dx + dz * dz;
+  let t = a > 1e-9 ? -(ox * dx + oz * dz) / a : 0;
+  t = Math.max(0, t);
+  const px = ox + dx * t, pz = oz + dz * t;
+  const py = Math.max(-0.2, Math.min(1.75, o.y + d.y * t));
+  let nx = px, nz = pz;
+  const len = Math.hypot(nx, nz);
+  if (len < 1e-4){ nx = 0.35; nz = 0.1; }   // 正对中轴：默认侧前向
+  else { nx /= len; nz /= len; }
+  const r = bodyRadiusAt(py);
+  return new THREE.Vector3(nx * r, py, nz * r);
+}
+
+function makeLabel3D(text){
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.font = 'bold 30px sans-serif';
+  ctx.fillStyle = '#c9d1d9';
+  ctx.textAlign = 'center';
+  ctx.fillText(text, 128, 42);
+  const tex = new THREE.CanvasTexture(c);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true, depthTest:false}));
+  sp.scale.set(0.24, 0.06, 1);
+  return sp;
+}
+
+function render3D(){
+  if (!T3 || !EDIT) return;
+  try{
+    const hcm = +((EDIT.body && EDIT.body.height_cm) || 175);
+    T3.group.scale.y = Math.max(0.7, Math.min(1.3, hcm / 175));   // 身高比例（换角色即时刷新）
+  }catch(e){}
+  const ng = T3.nodeGroup;
+  while (ng.children.length) ng.remove(ng.children[0]);
+  T3.spheres = [];
+  const lineMat = new THREE.LineBasicMaterial({color:0x58a6ff, transparent:true, opacity:0.6});
+  const spheres = [];
+  EDIT.parts.forEach((p, i) => {
+    const viz = Array.isArray(p.viz) && p.viz.length >= 2 ? p.viz : [...partPos(p, i), 0.14];
+    const pos = vizTo3D(viz);
+    const hue = sensHue(p.sens);
+    const geo = new THREE.SphereGeometry(i === MAP_SEL ? 0.035 : 0.028, 14, 10);
+    const mat = new THREE.MeshBasicMaterial({color:new THREE.Color(`hsl(${hue}, 65%, ${i === MAP_SEL ? 62 : 45}%)`)});
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(pos.x, pos.y, pos.z);
+    mesh.userData.i = i;
+    ng.add(mesh);
+    spheres.push({i, mesh});
+    const lbl = makeLabel3D(p.label || p.id);
+    lbl.position.set(pos.x, pos.y + 0.055, pos.z);
+    ng.add(lbl);
+  });
+  T3.spheres = spheres;
+  const byId = Object.fromEntries(EDIT.parts.map((p, i) => [p.id, i]));
+  EDIT.parts.forEach((p, i) => {
+    const v0 = Array.isArray(p.viz) && p.viz.length >= 2 ? p.viz : [...partPos(p, i), 0.14];
+    const a = vizTo3D(v0);
+    for (const [rid, ratio] of Object.entries(p.radiate || {})){
+      if (!(byId[rid] >= 0) || !(+ratio > 0)) continue;
+      const q = EDIT.parts[byId[rid]];
+      const v1 = Array.isArray(q.viz) && q.viz.length >= 2 ? q.viz : [...partPos(q, byId[rid]), 0.14];
+      const b = vizTo3D(v1);
+      const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a.x, a.y, a.z), new THREE.Vector3(b.x, b.y, b.z)]);
+      ng.add(new THREE.Line(geo, lineMat));
+    }
+  });
+  T3.dirty = true;
+}
+
+/* ---- AI 快速填写 ---- */
+function agentApply(){
+  const ta = document.getElementById('agent-json');
+  const st = document.getElementById('agent-state');
+  try{
+    const arr = JSON.parse(ta.value);
+    if (!Array.isArray(arr) || !arr.length) throw new Error('须为非空 JSON 数组');
+    let added = 0, updated = 0;
+    for (const item of arr){
+      if (!item || typeof item !== 'object' || !item.id || !item.label) throw new Error(`条目缺 id/label: ${JSON.stringify(item).slice(0, 60)}`);
+      const clean = {
+        id: String(item.id), label: String(item.label),
+        sens: Math.max(1, Math.min(10, +item.sens || 5)),
+        half_life: Math.max(5, Math.min(3600, +item.half_life || 900)),
+        aliases: Array.isArray(item.aliases) ? item.aliases.map(String) : [],
+        radiate: item.radiate && typeof item.radiate === 'object' ? item.radiate : {},
+        viz: Array.isArray(item.viz) ? item.viz.map(Number).slice(0, 3) : undefined,
+      };
+      if (!clean.viz) delete clean.viz;
+      const i = EDIT.parts.findIndex(p => p.id === clean.id);
+      if (i >= 0){ EDIT.parts[i] = clean; updated++; }
+      else { EDIT.parts.push(clean); added++; }
+    }
+    st.textContent = `已合并：新增 ${added}、覆盖 ${updated}——点"保存并热生效"落盘`;
+    renderEditor();
+    toast(`合并完成（+${added} 覆盖 ${updated}）`);
+  }catch(e){
+    st.textContent = '';
+    toast('解析失败：' + (e.message || e), true);
+  }
+}
+
+function agentCopyTemplate(){
+  const tpl = JSON.stringify(EDIT.parts.map(({_new, ...p}) => p), null, 1);
+  navigator.clipboard.writeText(tpl).then(() => toast('已复制当前部位为模板'), () => toast('复制失败，请手动选择', true));
+}
+
+/* ---- id 全自动：中文 label → 拼音 slug（pinyin-pro CDN 懒加载，失败回退 part_N） ---- */
+const PINYIN_CDN = 'pinyin-pro.min.js';  // 本页目录资源：沙箱内可载、国内无忧（unpkg曾致id兜底失效）
+
+function loadPinyin(){
+  if (window.pinyinPro) return Promise.resolve();
+  if (loadPinyin._p) return loadPinyin._p;
+  loadPinyin._p = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = PINYIN_CDN;
+    s.onload = () => res();
+    s.onerror = () => rej(new Error('pinyin-pro 加载失败'));
+    document.head.appendChild(s);
+  }).catch(() => {});   // 失败静默：走 part_N 兜底
+  return loadPinyin._p;
+}
+
+async function slugLabel(label, existing){
+  const taken = new Set((existing || []).map(p => p.id));
+  let base = '';
+  try{
+    await loadPinyin();
+    if (window.pinyinPro && window.pinyinPro.pinyin){
+      const py = window.pinyinPro.pinyin(String(label || ''), {toneType:'none', type:'array'}).join('');
+      const clean = py.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (clean) base = clean.slice(0, 20);
+    }
+  }catch(e){ /* 回退编号 */ }
+  if (!base){
+    /* 0.27.8 事故加固：拼音库不可用时不再产出光杆 part（无意义 id，二次添加即撞名）——
+       统一 part_N 编号（N 自 2 递增，taken 集合判重确保唯一） */
+    let n = 2;
+    while (taken.has(`part_${n}`)) n++;
+    return `part_${n}`;
+  }
+  if (!taken.has(base)) return base;
+  let n = 2;
+  while (taken.has(`${base}_${n}`)) n++;
+  return `${base}_${n}`;
+}
+
+async function ensureIds(parts){
+  /* 三条加部位路径（表格新增 new_part_N / 双击气泡 / 镜像复制）最终都汇到本兜底：
+     ①空 id 或 new_part_N 占位 → 拼音 slug（失败 part_N）；
+     ②手工在表格里输入重复 id → 追加 _2/_3 尾缀去重（后端唯一性前置防线） */
+  const seen = new Set();
+  for (const p of parts){
+    if (!p.id || /^new_part_\d+$/.test(p.id)){
+      p.id = await slugLabel(p.label, parts);
+    }
+    if (seen.has(p.id)){
+      const b = p.id;
+      let n = 2;
+      while (parts.some(q => q.id === `${b}_${n}`)) n++;
+      p.id = `${b}_${n}`;
+    }
+    seen.add(p.id);
+  }
+}
+
+/* ---- 落点即点即命名（Sketchfab/REDCap 模式：零手填 id，可跳过命名，预设智能预选） ---- */
+let NAME_BUBBLE = null;
+let NAME_BUBBLE_OUTSIDE = null;   // 点外关闭的 document 级监听引用（气泡关闭时同步摘除，防残留/误关下一个气泡）
+
+/* 常规部位预设字典（REDCap painmap 品类惯例：键+人类标签；敏感区不预置，用户自填）
+   viz 为 2D 图坐标；sens 默认按 TPD 神经学映射（见 CONFIG.TPD_REFERENCE） */
+const PART_PRESETS = [
+  {id:'head_top',label:'头顶',sens:5,hl:1500,viz:[100,12]},
+  {id:'forehead',label:'额头',sens:5,hl:1500,viz:[100,24]},
+  {id:'temple_l',label:'左太阳穴',sens:6,hl:90,viz:[86,30]},{id:'temple_r',label:'右太阳穴',sens:6,hl:90,viz:[114,30]},
+  {id:'eye_area',label:'眼周',sens:7,hl:90,viz:[100,38]},
+  {id:'nose',label:'鼻梁',sens:6,hl:90,viz:[100,40]},
+  {id:'mouth',label:'唇',sens:9,hl:60,viz:[100,50]},
+  {id:'chin',label:'下巴',sens:5,hl:1500,viz:[100,58]},
+  {id:'jaw_l',label:'左下颌',sens:6,hl:90,viz:[87,50]},{id:'jaw_r',label:'右下颌',sens:6,hl:90,viz:[113,50]},
+  {id:'ear_l',label:'左耳',sens:9,hl:60,viz:[72,36]},{id:'ear_r',label:'右耳',sens:9,hl:60,viz:[128,36]},
+  {id:'ear_back_l',label:'左耳后',sens:7,hl:90,viz:[72,44]},{id:'ear_back_r',label:'右耳后',sens:7,hl:90,viz:[128,44]},
+  {id:'neck_front',label:'喉侧',sens:5,hl:1500,viz:[100,80]},{id:'nape',label:'后颈',sens:5,hl:1500,viz:[100,72]},
+  {id:'collarbone',label:'锁骨',sens:5,hl:1500,viz:[100,95]},
+  {id:'shoulder_l',label:'左肩',sens:4,hl:1500,viz:[64,95]},{id:'shoulder_r',label:'右肩',sens:4,hl:1500,viz:[136,95]},
+  {id:'armpit_l',label:'左腋下',sens:7,hl:90,viz:[74,112]},{id:'armpit_r',label:'右腋下',sens:7,hl:90,viz:[126,112]},
+  {id:'chest',label:'胸口',sens:5,hl:1500,viz:[100,112]},
+  {id:'upper_back',label:'上背',sens:3,hl:1500,viz:[100,122]},{id:'mid_back',label:'背中',sens:3,hl:1500,viz:[100,150]},
+  {id:'spine',label:'脊柱沟',sens:4,hl:1500,viz:[100,165]},
+  {id:'flank_l',label:'左肋侧',sens:4,hl:1500,viz:[72,135]},{id:'flank_r',label:'右肋侧',sens:4,hl:1500,viz:[128,135]},
+  {id:'abdomen',label:'腹部',sens:3,hl:1500,viz:[100,200]},{id:'navel',label:'脐周',sens:5,hl:1500,viz:[100,210]},
+  {id:'waist_l',label:'左腰',sens:3,hl:1500,viz:[76,182]},{id:'waist_r',label:'右腰',sens:3,hl:1500,viz:[124,182]},
+  {id:'lower_back',label:'腰骶',sens:4,hl:1500,viz:[100,225]},
+  {id:'elbow_l',label:'左肘',sens:3,hl:1500,viz:[58,185]},{id:'elbow_r',label:'右肘',sens:3,hl:1500,viz:[142,185]},
+  {id:'forearm_l',label:'左前臂',sens:3,hl:1500,viz:[50,205]},{id:'forearm_r',label:'右前臂',sens:3,hl:1500,viz:[150,205]},
+  {id:'wrist_l',label:'左腕',sens:4,hl:1500,viz:[42,222]},{id:'wrist_r',label:'右腕',sens:4,hl:1500,viz:[158,222]},
+  {id:'hand_back_l',label:'左手背',sens:5,hl:1500,viz:[36,245]},{id:'hand_back_r',label:'右手背',sens:5,hl:1500,viz:[164,245]},
+  {id:'palm_l',label:'左手心',sens:6,hl:1500,viz:[36,252]},{id:'palm_r',label:'右手心',sens:6,hl:1500,viz:[164,252]},
+  {id:'thigh_out_l',label:'左大腿外侧',sens:2,hl:1500,viz:[70,272]},{id:'thigh_out_r',label:'右大腿外侧',sens:2,hl:1500,viz:[130,272]},
+  {id:'knee_l',label:'左膝',sens:4,hl:1500,viz:[80,335]},{id:'knee_r',label:'右膝',sens:4,hl:1500,viz:[120,335]},
+  {id:'knee_back_l',label:'左腘窝',sens:5,hl:1500,viz:[80,340]},{id:'knee_back_r',label:'右腘窝',sens:5,hl:1500,viz:[120,340]},
+  {id:'shin_l',label:'左胫前',sens:3,hl:1500,viz:[80,370]},{id:'shin_r',label:'右胫前',sens:3,hl:1500,viz:[120,370]},
+  {id:'calf_l',label:'左小腿',sens:3,hl:1500,viz:[80,378]},{id:'calf_r',label:'右小腿',sens:3,hl:1500,viz:[120,378]},
+  {id:'ankle_l',label:'左踝',sens:4,hl:1500,viz:[80,418]},{id:'ankle_r',label:'右踝',sens:4,hl:1500,viz:[120,418]},
+  {id:'instep_l',label:'左脚背',sens:4,hl:1500,viz:[80,430]},{id:'instep_r',label:'右脚背',sens:4,hl:1500,viz:[120,430]},
+  {id:'sole_l',label:'左脚心',sens:7,hl:1500,viz:[80,442]},{id:'sole_r',label:'右脚心',sens:7,hl:1500,viz:[120,442]},
+];
+
+function nearestPresets(x, y, n = 5){
+  const taken = new Set((EDIT ? EDIT.parts : []).map(p => p.id));
+  return PART_PRESETS
+    .filter(p => !taken.has(p.id))
+    .map(p => ({p, d: Math.hypot(p.viz[0] - x, p.viz[1] - y)}))
+    .sort((a, b) => a.d - b.d)
+    .slice(0, n)
+    .map(e => e.p);
+}
+
+function closeNameBubble(){
+  if (NAME_BUBBLE_OUTSIDE){
+    document.removeEventListener('pointerdown', NAME_BUBBLE_OUTSIDE);
+    NAME_BUBBLE_OUTSIDE = null;
+  }
+  if (NAME_BUBBLE){ NAME_BUBBLE.remove(); NAME_BUBBLE = null; }
+}
+
+function showNameBubble(anchorX, anchorY, viz, onConfirm){
+  closeNameBubble();
+  const presets = nearestPresets(viz[0], viz[1]);
+  const div = document.createElement('div');
+  div.style.cssText = `position:fixed;left:${Math.min(window.innerWidth - 250, anchorX)}px;top:${Math.min(window.innerHeight - 210, anchorY)}px;z-index:9999;background:#161b22;border:1px solid #58a6ff88;border-radius:8px;padding:10px;box-shadow:0 4px 18px #000a;display:flex;flex-direction:column;gap:6px;width:230px`;
+  div.innerHTML = `
+    <div style="font-size:11px;color:#8b949e">落点附近的预设部位（或直接回车跳过命名）</div>
+    <div id="nb-presets" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+    <input id="nb-input" style="background:#0d1117;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:5px 8px;font-size:13px" placeholder="自定义名称（回车=跳过）">
+    <div id="nb-id-preview" class="hint" style="min-height:14px"></div>
+    <div style="display:flex;gap:6px;justify-content:flex-end">
+      <button class="rowbtn" id="nb-cancel">取消</button>
+      <button class="rowbtn" id="nb-ok" style="background:#1f6feb;color:#fff;border-color:#1f6feb">添加</button>
+    </div>`;
+  document.body.appendChild(div);
+  NAME_BUBBLE = div;
+  let chosen = null;   // 选中的预设
+  const input = div.querySelector('#nb-input');
+  const preview = div.querySelector('#nb-id-preview');
+  const presetBox = div.querySelector('#nb-presets');
+  const refreshIdPreview = async () => {
+    if (chosen){ preview.textContent = `ID: ${chosen.id}｜sens ${chosen.sens}（预设）`; return; }
+    const label = input.value.trim();
+    if (!label){ preview.textContent = '回车跳过 → 自动「部位N」'; return; }
+    preview.textContent = `ID: ${await slugLabel(label, EDIT.parts)}（自动）`;
+  };
+  presets.forEach(p => {
+    const b = document.createElement('button');
+    b.className = 'rowbtn';
+    b.textContent = p.label;
+    b.addEventListener('click', () => {
+      chosen = (chosen === p) ? null : p;
+      presetBox.querySelectorAll('button').forEach(x => x.style.borderColor = '');
+      if (chosen){ b.style.borderColor = '#1f6feb'; input.value = p.label; }
+      else input.value = '';
+      refreshIdPreview();
+    });
+    presetBox.appendChild(b);
+  });
+  input.focus();
+  const finish = async (ok) => {
+    if (!NAME_BUBBLE) return;   // 幂等：确定/Enter/Esc/点外多路触发只结算一次（防重复添加部位）
+    const label = input.value.trim();
+    closeNameBubble();
+    if (!ok) return;
+    if (chosen) await onConfirm(chosen.label, chosen);
+    else if (label) await onConfirm(label, null);
+    else {   // 跳过命名：numbered marker 模式
+      const n = (EDIT.parts.filter(p => /^(buwei|part|node)_/.test(p.id)).length + 1);
+      await onConfirm(`部位${n}`, null);
+    }
+  };
+  div.querySelector('#nb-ok').addEventListener('click', () => finish(true));
+  div.querySelector('#nb-cancel').addEventListener('click', () => finish(false));
+  input.addEventListener('input', () => { chosen = null; refreshIdPreview(); });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') finish(true);
+    if (e.key === 'Escape') finish(false);
+    e.stopPropagation();
+  });
+  refreshIdPreview();
+  setTimeout(() => {
+    if (!NAME_BUBBLE) return;
+    NAME_BUBBLE_OUTSIDE = (ev) => {
+      if (NAME_BUBBLE && !NAME_BUBBLE.contains(ev.target)) finish(false);
+    };
+    document.addEventListener('pointerdown', NAME_BUBBLE_OUTSIDE);
+  }, 50);
+}
+
+/* 四页互跳：AstrBot 插件页 iframe 沙箱（allow-scripts；静态资源解析限定在本 page 目录，
+   官方文档明确"不要依赖 .. 逃逸 Page 根目录"；bridge 亦无页面跳转 API）——
+   ../<name>/ 相对跳转不可行，点击给出一致引导。 */
+
+
+load();
+switchTab(CUR_TAB);   // 默认进「部位」tab（内存变量，刷新回默认）
+setInterval(() => {
+  const cb = document.getElementById('auto');
+  if (!document.hidden && cb && cb.checked && document.getElementById('view-overview').style.display !== 'none') load();
+}, 30000);
+</script>
+</body>
+</html>
